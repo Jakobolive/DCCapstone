@@ -1,11 +1,11 @@
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #b3ab9d;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #1ad4c4;
     --foreground: #ededed;
   }
 }
@@ -40,3 +40,31 @@ a {
     color-scheme: dark;
   }
 }
+
+.navbar {
+  background-color: #df9d56;  /* Dark background */
+  padding: 10px 20px;  /* Add some space around the navbar */
+}
+
+.nav-links {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content:last baseline;
+  gap: 4%;
+  font-size: 25px;
+}
+
+
+
+.footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: var(--navbar);
+  color: var(--navbarText);
+  text-align: center;
+}
+
