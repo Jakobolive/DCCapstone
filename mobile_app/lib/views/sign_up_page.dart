@@ -1,10 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class SignUpPage extends StatelessWidget {
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+
+  Future<void> _signUp(BuildContext context) async {
+    final supabase = Supabase.instance.client;
+
+    // Basic input validation
+    if (firstNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("First & Last Name Is Required")),
+      );
+      return;
+    }
+    if (lastNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("First & Last Name Is Required")),
+      );
+      return;
+    }
+    if (emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Email Is Required")),
+      );
+      return;
+    }
+    if (passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Password Is Required")),
+      );
+      return;
+    }
+    if (confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please Confirm Your Password")),
+      );
+      return;
+    }
+    if (phoneController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Phone Number Is Required")),
+      );
+      return;
+    }
+
+    // Confirm password validation
+    if (passwordController.text != confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Passwords Do Not Match")),
+      );
+      return;
+    }
+
+    try {
+      // Hash the password using bcrypt before saving
+      final hashedPassword =
+          BCrypt.hashpw(passwordController.text.trim(), BCrypt.gensalt());
+
+      // Insert the user profile data into the database (with hashed password)
+      // final response = await supabase.from('users_table').insert({
+      //   'first_name': firstNameController.text.trim(),
+      //   'last_name': lastNameController.text.trim(),
+      //   'email_address': emailController.text.trim(),
+      //   'phone_number': int.tryParse(phoneController.text.trim()) ?? 0,
+      //   'password': hashedPassword, // Store the hashed password
+      // });
+      final response = await supabase.from('users_table').insert({
+        'first_name': firstNameController.text.trim(),
+        'last_name': lastNameController.text.trim(),
+        'email_address': emailController.text.trim(),
+        'phone_number': phoneController.text.trim().isNotEmpty
+            ? int.tryParse(phoneController.text.trim())
+            : null,
+        'password': hashedPassword,
+      }).select();
+
+      print(response);
+
+      if (response.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Sign-up Failed: ${response}")),
+        );
+        return;
+      }
+
+      // Navigate to the profile creation page after successful sign-up
+      Navigator.pushReplacementNamed(context, '/edit-profile');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,103 +112,94 @@ class SignUpPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Page Title or App Logo
               const Center(
                 child: Text(
                   "Sign Up",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 40),
-
-              // Name Input Field
               TextField(
-                controller: nameController,
+                controller: firstNameController,
                 decoration: InputDecoration(
-                  labelText: "Full Name",
+                  labelText: "First Name",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  prefixIcon: Icon(Icons.person),
+                      borderRadius: BorderRadius.circular(12.0)),
+                  prefixIcon: const Icon(Icons.person),
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Email Input Field
+              TextField(
+                controller: lastNameController,
+                decoration: InputDecoration(
+                  labelText: "Last Name",
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0)),
+                  prefixIcon: const Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: "Email",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  prefixIcon: Icon(Icons.email),
+                      borderRadius: BorderRadius.circular(12.0)),
+                  prefixIcon: const Icon(Icons.email),
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Phone Number Input Field
               TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: "Phone Number",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  prefixIcon: Icon(Icons.phone),
+                      borderRadius: BorderRadius.circular(12.0)),
+                  prefixIcon: const Icon(Icons.phone),
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Password Input Field
               TextField(
                 controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: "Password",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  prefixIcon: Icon(Icons.lock),
+                      borderRadius: BorderRadius.circular(12.0)),
+                  prefixIcon: const Icon(Icons.lock),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: "Confirm Password",
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0)),
+                  prefixIcon: const Icon(Icons.lock),
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Sign Up Button
               ElevatedButton(
-                onPressed: () {
-                  // Add sign-up logic here
-                  print("Name: ${nameController.text}");
-                  print("Email: ${emailController.text}");
-                  print("Phone: ${phoneController.text}");
-                  print("Password: ${passwordController.text}");
-                },
+                onPressed: () => _signUp(context),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text(
-                  "Sign Up",
-                  style: TextStyle(fontSize: 18),
-                ),
+                child: const Text("Sign Up", style: TextStyle(fontSize: 18)),
               ),
               const SizedBox(height: 20),
-
-              // Login Redirect Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already have an account?"),
+                  const Text("Already Have An Account?"),
                   TextButton(
                     onPressed: () {
-                      // Add navigation to login page
+                      Navigator.pushNamed(context, '/login');
                     },
                     child: const Text("Log In"),
                   ),
