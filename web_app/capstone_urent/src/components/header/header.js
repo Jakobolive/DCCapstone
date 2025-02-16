@@ -1,5 +1,6 @@
 //imports
 import Link from 'next/link';   //Import Link for client-side routing
+import React from 'react';
 
 const Header = () => {
     return (
