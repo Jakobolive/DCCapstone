@@ -130,3 +130,14 @@ button {
 button:hover {
   background-color: #0056b3;
 }
+
+.signUpLink {
+  color: blue;
+  text-align: center;
+  padding: 12px;
+  font-size: 10px;
+}
+
+.signUpLink:hover {
+  color:#007bff;
+}
