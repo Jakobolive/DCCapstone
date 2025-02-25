@@ -6,9 +6,18 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Profile"),
+        title: const Text("Swipe Rentals"),
         centerTitle: true,
         backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add), // Icon for profile creation
+            onPressed: () {
+              Navigator.pushNamed(context,
+                  '/build-profile'); // Navigate to profile creation page
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -18,8 +27,7 @@ class ProfilePage extends StatelessWidget {
               // Profile Picture
               CircleAvatar(
                 radius: 60,
-                backgroundImage: AssetImage(
-                    "assets/profile_placeholder.png"), // Replace with dynamic image
+                backgroundImage: AssetImage(""), // Replace with dynamic image
               ),
               const SizedBox(height: 16),
 
@@ -72,14 +80,15 @@ class ProfilePage extends StatelessWidget {
               ListTile(
                 leading: Icon(Icons.location_on, color: Colors.teal),
                 title: const Text("Location"),
-                subtitle: const Text("New York, NY, USA"), // Dynamic content
+                subtitle: const Text("Toronto, ON, Canada"), // Dynamic content
               ),
               const Divider(),
 
               // Edit Profile Button
               ElevatedButton.icon(
                 onPressed: () {
-                  // Add navigation to edit profile page
+                  // Add navigation to edit profile page.
+                  Navigator.pushReplacementNamed(context, '/edit-profile');
                 },
                 icon: const Icon(Icons.edit),
                 label: const Text("Edit Profile"),

@@ -32,8 +32,9 @@ class ChatListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chats'),
-      ),
+          title: const Text("Chats"),
+          centerTitle: true,
+          backgroundColor: Colors.teal),
       body: ListView.builder(
         itemCount: contacts.length,
         itemBuilder: (context, index) {
@@ -82,7 +83,18 @@ class ChatScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(contactName),
+        title: const Text("Swipe Rentals"),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add), // Icon for profile creation
+            onPressed: () {
+              Navigator.pushNamed(context,
+                  '/build-profile'); // Navigate to profile creation page
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

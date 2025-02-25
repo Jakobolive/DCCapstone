@@ -1,19 +1,25 @@
 import 'package:capstone_app/main.dart';
+import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-class EditProfilePage extends StatefulWidget {
+import '../providers/user_provider.dart';
+//import "package:capstone_app/assets/";
+
+class BuildProfilePage extends StatefulWidget {
   @override
-  _EditProfilePageState createState() => _EditProfilePageState();
+  _BuildProfilePageState createState() => _BuildProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
   String? userType; // Determines if the user is a renter or landlord
   final ImagePicker _picker = ImagePicker();
   List<File> images = []; // Stores uploaded images
+  final _formKey = GlobalKey<FormState>();
 
   // Common fields
   final TextEditingController locationController = TextEditingController();
@@ -96,10 +102,58 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  Future<void> _saveProfile() async {
+    try {
+      final int? userId = context.read<UserProvider>().userId;
+      print("✅ Retrieved userId: $userId");
+
+      // Determine table depending on user type.
+      if (userType == "Renter") {
+        final response = await supabase.from('preferences_table').insert({
+          'user_id': userId,
+          'photo_url': profilePicture?.path ?? "",
+          'location': locationController.text ?? "Unknown",
+          'max_budget': int.tryParse(budgetController.text) ?? 0,
+          'pets_allowed': petsAllowed,
+          'smoking_allowed': smokingAllowed,
+          'bed_count': bedCount,
+          'bath_count': bathCount,
+          'amenities': amenitiesController.text,
+        }).select();
+        print(response);
+      } else if (userType == "Landlord") {
+        final response = await supabase.from('listings_table').insert({
+          'user_id': userId,
+          'photo_url': images ?? "",
+          'street_address': addressController.text ?? "Unknown",
+          'location': locationController.text ?? "Unknown",
+          'asking_price': int.tryParse(priceController.text) ?? 0,
+          'bed_count': bedCount,
+          'bath_count': bathCount,
+          'amenities': amenitiesController.text,
+          'pets_allowed': petsAllowed,
+          'smoking_allowed': smokingAllowed,
+          'availability': availabilityController.text,
+          'listing_bio': bioController.text,
+        }).select();
+        print(response);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Profile saved successfully!")),
+      );
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Account Build Failed: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (userType == null) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()), // Loading state
       );
@@ -109,15 +163,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       appBar: AppBar(
         title: Text(
           userType == "Renter"
-              ? "Update Renter Profile"
-              : "Update Listing Profile",
+              ? "Build Renter Profile"
+              : "Build Listing Profile",
         ),
         backgroundColor: Colors.teal,
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back), // Back arrow icon
           onPressed: () {
-            Navigator.pushNamed(context, '/home');
+            // Navigator.pushNamed(context, '/home');
+            Navigator.pop(context);
           },
         ),
       ),
@@ -130,13 +185,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
+                _saveProfile();
                 // Save functionality (implement backend submission)
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.teal,
               ),
-              child: Text("Save Changes", style: TextStyle(fontSize: 18)),
+              child: Text("Build Profile", style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
@@ -154,7 +210,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             radius: 60,
             backgroundImage: profilePicture != null
                 ? FileImage(profilePicture!)
-                : AssetImage("assets/profile_placeholder.png") as ImageProvider,
+                : AssetImage("assets/placeholder.jpg") as ImageProvider,
             child: profilePicture == null
                 ? Icon(Icons.camera_alt, size: 40, color: Colors.white)
                 : null,

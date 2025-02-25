@@ -1,4 +1,6 @@
+import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bcrypt/bcrypt.dart';
 
@@ -66,22 +68,19 @@ class SignUpPage extends StatelessWidget {
           BCrypt.hashpw(passwordController.text.trim(), BCrypt.gensalt());
 
       // Insert the user profile data into the database (with hashed password)
-      // final response = await supabase.from('users_table').insert({
-      //   'first_name': firstNameController.text.trim(),
-      //   'last_name': lastNameController.text.trim(),
-      //   'email_address': emailController.text.trim(),
-      //   'phone_number': int.tryParse(phoneController.text.trim()) ?? 0,
-      //   'password': hashedPassword, // Store the hashed password
-      // });
-      final response = await supabase.from('users_table').insert({
-        'first_name': firstNameController.text.trim(),
-        'last_name': lastNameController.text.trim(),
-        'email_address': emailController.text.trim(),
-        'phone_number': phoneController.text.trim().isNotEmpty
-            ? int.tryParse(phoneController.text.trim())
-            : null,
-        'password': hashedPassword,
-      }).select();
+      final response = await supabase
+          .from('users_table')
+          .insert({
+            'first_name': firstNameController.text.trim(),
+            'last_name': lastNameController.text.trim(),
+            'email_address': emailController.text.trim(),
+            'phone_number': phoneController.text.trim().isNotEmpty
+                ? int.tryParse(phoneController.text.trim())
+                : null,
+            'password': hashedPassword,
+          })
+          .select('user_id')
+          .single();
 
       print(response);
 
@@ -91,9 +90,16 @@ class SignUpPage extends StatelessWidget {
         );
         return;
       }
+      // Extract user_id from response
+      final int userId = response['user_id'];
+
+      print("✅ Sign-up successful! New User ID: $userId");
+
+      // Save userId in Provider for session tracking
+      Provider.of<UserProvider>(context, listen: false).setUserId(userId);
 
       // Navigate to the profile creation page after successful sign-up
-      Navigator.pushReplacementNamed(context, '/edit-profile');
+      Navigator.pushReplacementNamed(context, '/build-profile');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: ${e.toString()}")),
@@ -105,6 +111,10 @@ class SignUpPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+          title: const Text("Sign Up"),
+          centerTitle: true,
+          backgroundColor: Colors.teal),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

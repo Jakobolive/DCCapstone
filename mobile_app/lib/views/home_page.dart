@@ -35,7 +35,19 @@ class SwipePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Swipe Rentals")),
+      appBar: AppBar(
+        title: const Text("Swipe Rentals"),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add), // Icon for profile creation
+            onPressed: () {
+              Navigator.pushNamed(context, '/build-profile');
+            },
+          ),
+        ],
+      ),
       body: Swiper(
         itemBuilder: (BuildContext context, int index) {
           return Card(
