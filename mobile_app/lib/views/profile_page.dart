@@ -27,7 +27,8 @@ class ProfilePage extends StatelessWidget {
               // Profile Picture
               CircleAvatar(
                 radius: 60,
-                backgroundImage: AssetImage(""), // Replace with dynamic image
+                backgroundImage: AssetImage(
+                    "assets/placeholder.jpg"), // Replace with dynamic image
               ),
               const SizedBox(height: 16),
 

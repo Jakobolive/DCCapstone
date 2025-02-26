@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import '../providers/user_provider.dart';
-//import "package:capstone_app/assets/";
 
 class BuildProfilePage extends StatefulWidget {
   @override
@@ -18,7 +17,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
   String? userType; // Determines if the user is a renter or landlord
   final ImagePicker _picker = ImagePicker();
-  List<File> images = []; // Stores uploaded images
   final _formKey = GlobalKey<FormState>();
 
   // Common fields
@@ -26,6 +24,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   final TextEditingController bioController = TextEditingController();
 
   // Renter-specific fields
+  final TextEditingController nameController = TextEditingController();
   final TextEditingController budgetController = TextEditingController();
   bool petsAllowed = false;
   bool nonSmoking = false;
@@ -40,6 +39,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   bool petsAllowedLandlord = false;
   bool smokingAllowed = false;
   final TextEditingController availabilityController = TextEditingController();
+  File? listingPicture;
 
   @override
   void initState() {
@@ -82,12 +82,12 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Function to pick images
-  Future<void> _pickImages() async {
-    final pickedFiles = await _picker.pickMultiImage();
-    if (pickedFiles != null) {
+  // Function to pick Listing picture
+  Future<void> _pickListingPicture() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
       setState(() {
-        images.addAll(pickedFiles.map((file) => File(file.path)));
+        listingPicture = File(pickedFile.path);
       });
     }
   }
@@ -111,6 +111,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       if (userType == "Renter") {
         final response = await supabase.from('preferences_table').insert({
           'user_id': userId,
+          'preferred_name': nameController.text ?? "NA",
           'photo_url': profilePicture?.path ?? "",
           'location': locationController.text ?? "Unknown",
           'max_budget': int.tryParse(budgetController.text) ?? 0,
@@ -124,7 +125,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       } else if (userType == "Landlord") {
         final response = await supabase.from('listings_table').insert({
           'user_id': userId,
-          'photo_url': images ?? "",
+          'photo_url': listingPicture?.path ?? "",
           'street_address': addressController.text ?? "Unknown",
           'location': locationController.text ?? "Unknown",
           'asking_price': int.tryParse(priceController.text) ?? 0,
@@ -221,6 +222,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           child: Text(userType == null ? "Select User Type" : "$userType"),
         ),
         SizedBox(height: 20),
+        _buildTextField("Preferred Name", nameController, Icons.person),
         _buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Budget (\$)", budgetController, Icons.attach_money),
@@ -241,19 +243,18 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   Widget _buildLandlordForm() {
     return Column(
       children: [
-        ElevatedButton(
-          onPressed: _pickImages,
-          child: Text("Upload Listing Photos"),
-        ),
-        if (images.isNotEmpty)
-          Container(
-            height: 200,
-            child: PageView(
-              children: images
-                  .map((image) => Image.file(image, fit: BoxFit.cover))
-                  .toList(),
-            ),
+        GestureDetector(
+          onTap: _pickListingPicture,
+          child: CircleAvatar(
+            radius: 60,
+            backgroundImage: listingPicture != null
+                ? FileImage(listingPicture!)
+                : AssetImage("assets/placeholder.jpg") as ImageProvider,
+            child: profilePicture == null
+                ? Icon(Icons.camera_alt, size: 40, color: Colors.white)
+                : null,
           ),
+        ),
         ElevatedButton(
           onPressed: _showUserTypeDialog,
           child: Text(userType == null ? "Select User Type" : "$userType"),
