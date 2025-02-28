@@ -45,32 +45,44 @@ class SwipePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Swipe Rentals"),
+        title: const Text("Home Page"),
         centerTitle: true,
         backgroundColor: Colors.teal,
         actions: [
-          // Profile Dropdown
-          if (userProvider.profiles.isNotEmpty)
+          // Profile Dropdown (Shows renter profiles first, otherwise landlord profiles)
+          if (userProvider.renterProfiles.isNotEmpty ||
+              userProvider.landlordProfiles.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: DropdownButton<String>(
+              child: DropdownButton<Map<String, dynamic>>(
                 value: userProvider.selectedProfile,
                 hint: const Text("Select Profile"),
                 dropdownColor: Colors.white,
                 icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                onChanged: (String? newValue) {
+                onChanged: (Map<String, dynamic>? newValue) {
                   if (newValue != null) {
-                    userProvider.setSelectedProfile(newValue);
+                    final isRenter =
+                        userProvider.renterProfiles.contains(newValue);
+                    userProvider.setSelectedProfile(
+                        newValue, isRenter ? "Renter" : "Landlord");
                   }
                 },
-                items: userProvider.profiles.map((profile) {
-                  return DropdownMenuItem<String>(
-                    value:
-                        profile['street_address'] ?? profile['preferred_name'],
-                    child: Text(
-                        profile['street_address'] ?? profile['preferred_name']),
-                  );
-                }).toList(),
+                items: [
+                  ...userProvider.renterProfiles.map((profile) {
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      value: profile,
+                      child:
+                          Text(profile['preferred_name'] ?? "Renter Profile"),
+                    );
+                  }),
+                  ...userProvider.landlordProfiles.map((profile) {
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      value: profile,
+                      child:
+                          Text(profile['street_address'] ?? "Landlord Profile"),
+                    );
+                  }),
+                ],
               ),
             ),
 
@@ -78,10 +90,10 @@ class SwipePage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
-              await userProvider
-                  .fetchProfiles(); // Call method to refresh profiles
+              await userProvider.fetchProfiles();
             },
           ),
+
           // Profile Creation Icon
           IconButton(
             icon: const Icon(Icons.person_add),

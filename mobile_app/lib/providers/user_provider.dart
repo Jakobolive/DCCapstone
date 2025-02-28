@@ -3,28 +3,29 @@ import 'package:flutter/material.dart';
 
 class UserProvider extends ChangeNotifier {
   int? _userId;
-  String? _selectedProfile;
-  List<Map<String, dynamic>> _profiles = []; // Ensure correct type
+  String? _userType; // "Renter" or "Landlord"
+  Map<String, dynamic>? _selectedProfile;
+  List<Map<String, dynamic>> _renterProfiles = [];
+  List<Map<String, dynamic>> _landlordProfiles = [];
 
   int? get userId => _userId;
-  String? get selectedProfile => _selectedProfile;
-  List<Map<String, dynamic>> get profiles => _profiles;
+  String? get userType => _userType;
+  Map<String, dynamic>? get selectedProfile => _selectedProfile;
+  List<Map<String, dynamic>> get renterProfiles => _renterProfiles;
+  List<Map<String, dynamic>> get landlordProfiles => _landlordProfiles;
 
   void setUserId(int id) {
     _userId = id;
-    fetchProfiles(); // Fetch profiles when user logs in
-    notifyListeners();
-  }
-
-  void setSelectedProfile(String profile) {
-    _selectedProfile = profile;
+    fetchProfiles();
     notifyListeners();
   }
 
   void clearUser() {
     _userId = null;
+    _userType = null;
     _selectedProfile = null;
-    _profiles = [];
+    _renterProfiles = [];
+    _landlordProfiles = [];
     notifyListeners();
   }
 
@@ -42,20 +43,33 @@ class UserProvider extends ChangeNotifier {
           .select('*')
           .eq('user_id', _userId as Object);
 
-      // Ensure the response is properly extracted
-      final List<Map<String, dynamic>> preferences =
-          List<Map<String, dynamic>>.from(preferenceResponse);
+      _renterProfiles = List<Map<String, dynamic>>.from(preferenceResponse);
+      _landlordProfiles = List<Map<String, dynamic>>.from(listingResponse);
 
-      final List<Map<String, dynamic>> listings =
-          List<Map<String, dynamic>>.from(listingResponse);
-
-      _profiles = [...preferences, ...listings];
+      // ✅ Automatically select the first available profile (prioritizing Renters)
+      if (_renterProfiles.isNotEmpty) {
+        setSelectedProfile(_renterProfiles.first, "Renter");
+      } else if (_landlordProfiles.isNotEmpty) {
+        setSelectedProfile(_landlordProfiles.first, "Landlord");
+      } else {
+        _selectedProfile = null;
+        _userType = null;
+      }
 
       notifyListeners();
     } catch (e) {
       print("Error fetching profiles: $e");
-      _profiles = []; // Ensure it doesn't break
+      _renterProfiles = [];
+      _landlordProfiles = [];
+      _selectedProfile = null;
+      _userType = null;
       notifyListeners();
     }
+  }
+
+  void setSelectedProfile(Map<String, dynamic> profile, String type) {
+    _selectedProfile = profile;
+    _userType = type;
+    notifyListeners();
   }
 }

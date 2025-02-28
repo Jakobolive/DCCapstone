@@ -28,6 +28,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   final TextEditingController budgetController = TextEditingController();
   bool petsAllowed = false;
   bool nonSmoking = false;
+  bool prefPrivate = false;
   int bedCount = 1;
   int bathCount = 1;
   final TextEditingController amenitiesController = TextEditingController();
@@ -36,8 +37,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   // Landlord-specific fields
   final TextEditingController addressController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-  bool petsAllowedLandlord = false;
   bool smokingAllowed = false;
+  bool isPrivate = false;
   final TextEditingController availabilityController = TextEditingController();
   File? listingPicture;
 
@@ -112,6 +113,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         final response = await supabase.from('preferences_table').insert({
           'user_id': userId,
           'preferred_name': nameController.text ?? "NA",
+          'profile_bio': bioController.text ?? "NA",
           'photo_url': profilePicture?.path ?? "",
           'location': locationController.text ?? "Unknown",
           'max_budget': int.tryParse(budgetController.text) ?? 0,
@@ -120,6 +122,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           'bed_count': bedCount,
           'bath_count': bathCount,
           'amenities': amenitiesController.text,
+          'is_pref_private': prefPrivate,
         }).select();
         print(response);
       } else if (userType == "Landlord") {
@@ -136,6 +139,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           'smoking_allowed': smokingAllowed,
           'availability': availabilityController.text,
           'listing_bio': bioController.text,
+          'is_private': isPrivate,
         }).select();
         print(response);
       }
@@ -187,7 +191,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
             ElevatedButton(
               onPressed: () {
                 _saveProfile();
-                // Save functionality (implement backend submission)
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
@@ -230,11 +233,34 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
             "Beds", bedCount, (value) => setState(() => bedCount = value)),
         _buildCounter(
             "Baths", bathCount, (value) => setState(() => bathCount = value)),
-        _buildCheckbox("Pets Allowed", petsAllowed,
-            (value) => setState(() => petsAllowed = value)),
-        _buildCheckbox("Non-Smoking", nonSmoking,
-            (value) => setState(() => nonSmoking = value)),
+        CheckboxListTile(
+          title: Text("Pets Allowed"),
+          value: petsAllowed,
+          onChanged: (bool? value) {
+            setState(() {
+              petsAllowed = value ?? false;
+            });
+          },
+        ),
+        CheckboxListTile(
+          title: Text("Non-Smoking"),
+          value: nonSmoking,
+          onChanged: (bool? value) {
+            setState(() {
+              nonSmoking = value ?? false;
+            });
+          },
+        ),
         _buildTextField("Amenities", amenitiesController, Icons.list),
+        CheckboxListTile(
+          title: Text("Private Mode"),
+          value: prefPrivate,
+          onChanged: (bool? value) {
+            setState(() {
+              prefPrivate = value ?? false;
+            });
+          },
+        ),
       ],
     );
   }
@@ -268,13 +294,36 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
             "Beds", bedCount, (value) => setState(() => bedCount = value)),
         _buildCounter(
             "Baths", bathCount, (value) => setState(() => bathCount = value)),
-        _buildCheckbox("Pets Allowed", petsAllowedLandlord,
-            (value) => setState(() => petsAllowedLandlord = value)),
-        _buildCheckbox("Smoking Allowed", smokingAllowed,
-            (value) => setState(() => smokingAllowed = value)),
+        CheckboxListTile(
+          title: Text("Pets Allowed"),
+          value: petsAllowed,
+          onChanged: (bool? value) {
+            setState(() {
+              petsAllowed = value ?? false;
+            });
+          },
+        ),
+        CheckboxListTile(
+          title: Text("Non-Smoking"),
+          value: smokingAllowed,
+          onChanged: (bool? value) {
+            setState(() {
+              smokingAllowed = value ?? false;
+            });
+          },
+        ),
         _buildTextField(
             "Availability", availabilityController, Icons.calendar_today),
         _buildTextField("Amenities", amenitiesController, Icons.list),
+        CheckboxListTile(
+          title: Text("Private Mode"),
+          value: isPrivate,
+          onChanged: (bool? value) {
+            setState(() {
+              isPrivate = value ?? false;
+            });
+          },
+        ),
       ],
     );
   }
