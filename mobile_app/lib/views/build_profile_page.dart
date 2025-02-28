@@ -1,25 +1,23 @@
 import 'package:capstone_app/main.dart';
-import 'package:capstone_app/providers/user_provider.dart'; // Ensure you import the provider
+import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:provider/provider.dart';
 
-class EditProfilePage extends StatefulWidget {
+import '../providers/user_provider.dart';
+
+class BuildProfilePage extends StatefulWidget {
   @override
-  _EditProfilePageState createState() => _EditProfilePageState();
+  _BuildProfilePageState createState() => _BuildProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
+  String? userType; // Determines if the user is a renter or landlord
   final ImagePicker _picker = ImagePicker();
-  String? profilePictureURL;
-  File? profilePicture;
-  String? listingPictureURL;
-  File? listingPicture;
-  String? userType;
-  int? profileID;
+  final _formKey = GlobalKey<FormState>();
 
   // Common fields
   final TextEditingController locationController = TextEditingController();
@@ -34,59 +32,55 @@ class _EditProfilePageState extends State<EditProfilePage> {
   int bedCount = 1;
   int bathCount = 1;
   final TextEditingController amenitiesController = TextEditingController();
+  File? profilePicture;
 
   // Landlord-specific fields
   final TextEditingController addressController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-  bool petsAllowedLandlord = false;
   bool smokingAllowed = false;
   bool isPrivate = false;
   final TextEditingController availabilityController = TextEditingController();
+  File? listingPicture;
 
   @override
   void initState() {
     super.initState();
-    _loadProfileData();
+    _showUserTypeDialog();
   }
 
-  void _loadProfileData() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final profileData = userProvider.selectedProfile;
-
-    if (profileData != null) {
-      setState(() {
-        userType = userProvider.userType; // Directly get the user type
-
-        // Populate common fields
-        locationController.text = profileData['location'] ?? '';
-        amenitiesController.text = profileData['amenities'] ?? '';
-
-        if (userType == 'Renter') {
-          profilePictureURL = profileData['photo_url'] ?? '';
-          nameController.text = profileData['preferred_name']?.toString() ?? '';
-          bioController.text = profileData['profile_bio'] ?? '';
-          budgetController.text = profileData['max_budget']?.toString() ?? '';
-          petsAllowed = profileData['pets_allowed'] ?? false;
-          nonSmoking = profileData['smoking_allowed'] ?? false;
-          bedCount = profileData['bed_count'] ?? 1;
-          bathCount = profileData['bath_count'] ?? 1;
-          prefPrivate = profileData['is_pref_private'] ?? false;
-          profileID = profileData['preference_id'];
-        } else {
-          listingPictureURL = profileData['photo_url'] ?? '';
-          addressController.text = profileData['street_address'] ?? '';
-          bioController.text = profileData['listing_bio'] ?? '';
-          priceController.text = profileData['asking_price']?.toString() ?? '';
-          petsAllowedLandlord = profileData['pets_allowed'] ?? false;
-          smokingAllowed = profileData['smoking_allowed'] ?? false;
-          bedCount = profileData['bed_count'] ?? 1;
-          bathCount = profileData['bath_count'] ?? 1;
-          isPrivate = profileData['is_private'] ?? false;
-          availabilityController.text = profileData['availability'] ?? '';
-          profileID = profileData['listing_id'];
-        }
-      });
-    }
+  // Show popup to select user type
+  void _showUserTypeDialog() {
+    Future.delayed(
+      Duration.zero,
+      () => showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text("Select Profile Type"),
+          content: Text("Are you a renter or a landlord?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  userType = "Renter";
+                });
+                Navigator.pop(context);
+              },
+              child: Text("Renter"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  userType = "Landlord";
+                });
+                Navigator.pop(context);
+              },
+              child: Text("Landlord"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Function to pick Listing picture
@@ -111,82 +105,52 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _saveProfile() async {
     try {
-      print("✅ Retrieved profileId: $profileID");
+      final int? userId = context.read<UserProvider>().userId;
+      print("✅ Retrieved userId: $userId");
 
-      // Determine table and update accordingly
+      // Determine table depending on user type.
       if (userType == "Renter") {
-        // Ensure the profile exists before updating
-        final existingProfile = await supabase
-            .from('preferences_table')
-            .select('preference_id')
-            .eq('preference_id', profileID as Object)
-            .maybeSingle();
-
-        if (existingProfile != null) {
-          // Update existing profile
-          final response = await supabase
-              .from('preferences_table')
-              .update({
-                'preferred_name': nameController.text,
-                'profile_bio': bioController.text,
-                'photo_url': profilePicture?.path ?? "",
-                'location': locationController.text,
-                'max_budget': int.tryParse(budgetController.text) ?? 0,
-                'pets_allowed': petsAllowed,
-                'smoking_allowed': smokingAllowed,
-                'bed_count': bedCount,
-                'bath_count': bathCount,
-                'amenities': amenitiesController.text,
-                'is_pref_private': prefPrivate,
-              })
-              .eq('preference_id', profileID as Object)
-              .select();
-          print("✅ Updated profile: $response");
-        } else {
-          print("⚠️ No existing profile found for userId: $profileID");
-        }
+        final response = await supabase.from('preferences_table').insert({
+          'user_id': userId,
+          'preferred_name': nameController.text ?? "NA",
+          'profile_bio': bioController.text ?? "NA",
+          'photo_url': profilePicture?.path ?? "",
+          'location': locationController.text ?? "Unknown",
+          'max_budget': int.tryParse(budgetController.text) ?? 0,
+          'pets_allowed': petsAllowed,
+          'smoking_allowed': smokingAllowed,
+          'bed_count': bedCount,
+          'bath_count': bathCount,
+          'amenities': amenitiesController.text,
+          'is_pref_private': prefPrivate,
+        }).select();
+        print(response);
       } else if (userType == "Landlord") {
-        // Ensure the listing exists before updating
-        final existingListing = await supabase
-            .from('listings_table')
-            .select('listing_id')
-            .eq('listing_id', profileID as Object)
-            .maybeSingle();
-
-        if (existingListing != null) {
-          // Update existing listing
-          final response = await supabase
-              .from('listings_table')
-              .update({
-                'photo_url': listingPicture?.path ?? "",
-                'street_address': addressController.text,
-                'location': locationController.text,
-                'asking_price': int.tryParse(priceController.text) ?? 0,
-                'bed_count': bedCount,
-                'bath_count': bathCount,
-                'amenities': amenitiesController.text,
-                'pets_allowed': petsAllowed,
-                'smoking_allowed': smokingAllowed,
-                'availability': availabilityController.text,
-                'listing_bio': bioController.text,
-                'is_private': isPrivate,
-              })
-              .eq('listing_id', profileID as Object)
-              .select();
-          print("✅ Updated listing: $response");
-        } else {
-          print("⚠️ No existing listing found for userId: $profileID");
-        }
+        final response = await supabase.from('listings_table').insert({
+          'user_id': userId,
+          'photo_url': listingPicture?.path ?? "",
+          'street_address': addressController.text ?? "Unknown",
+          'location': locationController.text ?? "Unknown",
+          'asking_price': int.tryParse(priceController.text) ?? 0,
+          'bed_count': bedCount,
+          'bath_count': bathCount,
+          'amenities': amenitiesController.text,
+          'pets_allowed': petsAllowed,
+          'smoking_allowed': smokingAllowed,
+          'availability': availabilityController.text,
+          'listing_bio': bioController.text,
+          'is_private': isPrivate,
+        }).select();
+        print(response);
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profile updated successfully!")),
+        SnackBar(content: Text("Profile saved successfully!")),
       );
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      print("❌ Error updating profile: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profile update failed: $e")),
+        SnackBar(content: Text("Account Build Failed: $e")),
       );
     }
   }
@@ -194,7 +158,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (userType == null) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()), // Loading state
       );
@@ -204,15 +168,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       appBar: AppBar(
         title: Text(
           userType == "Renter"
-              ? "Update Renter Profile"
-              : "Update Listing Profile",
+              ? "Build Renter Profile"
+              : "Build Listing Profile",
         ),
         backgroundColor: Colors.teal,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back), // Back arrow icon
           onPressed: () {
-            Navigator.pushNamed(context, '/home');
+            // Navigator.pushNamed(context, '/home');
+            Navigator.pop(context);
           },
         ),
       ),
@@ -231,7 +196,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 padding: EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.teal,
               ),
-              child: Text("Save Changes", style: TextStyle(fontSize: 18)),
+              child: Text("Build Profile", style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
@@ -255,7 +220,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 : null,
           ),
         ),
-        _buildTextField("Preferred Name", nameController, Icons.people),
+        ElevatedButton(
+          onPressed: _showUserTypeDialog,
+          child: Text(userType == null ? "Select User Type" : "$userType"),
+        ),
+        SizedBox(height: 20),
+        _buildTextField("Preferred Name", nameController, Icons.person),
         _buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Budget (\$)", budgetController, Icons.attach_money),
@@ -311,6 +281,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 : null,
           ),
         ),
+        ElevatedButton(
+          onPressed: _showUserTypeDialog,
+          child: Text(userType == null ? "Select User Type" : "$userType"),
+        ),
+        SizedBox(height: 20),
         _buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Address", addressController, Icons.home),

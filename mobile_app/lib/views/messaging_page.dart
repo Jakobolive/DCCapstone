@@ -1,4 +1,6 @@
+import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(MessengerApp());
@@ -32,8 +34,9 @@ class ChatListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chats'),
-      ),
+          title: const Text("Chats"),
+          centerTitle: true,
+          backgroundColor: Colors.teal),
       body: ListView.builder(
         itemCount: contacts.length,
         itemBuilder: (context, index) {
@@ -80,9 +83,66 @@ class ChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(contactName),
+        title: const Text("Messages"),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+        actions: [
+          // Profile Dropdown (Shows renter profiles first, otherwise landlord profiles)
+          if (userProvider.renterProfiles.isNotEmpty ||
+              userProvider.landlordProfiles.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: DropdownButton<Map<String, dynamic>>(
+                value: userProvider.selectedProfile,
+                hint: const Text("Select Profile"),
+                dropdownColor: Colors.white,
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                onChanged: (Map<String, dynamic>? newValue) {
+                  if (newValue != null) {
+                    final isRenter =
+                        userProvider.renterProfiles.contains(newValue);
+                    userProvider.setSelectedProfile(
+                        newValue, isRenter ? "Renter" : "Landlord");
+                  }
+                },
+                items: [
+                  ...userProvider.renterProfiles.map((profile) {
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      value: profile,
+                      child:
+                          Text(profile['preferred_name'] ?? "Renter Profile"),
+                    );
+                  }),
+                  ...userProvider.landlordProfiles.map((profile) {
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      value: profile,
+                      child:
+                          Text(profile['street_address'] ?? "Landlord Profile"),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
+          // Refresh Button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              await userProvider.fetchProfiles();
+            },
+          ),
+
+          // Profile Creation Icon
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: () {
+              Navigator.pushNamed(context, '/build-profile');
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
