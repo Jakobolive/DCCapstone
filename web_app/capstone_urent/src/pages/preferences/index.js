@@ -25,6 +25,7 @@ const preferences = () => {
             const data = await response.json();
             if (data.user) {
                 setUser(data.user);  
+                fetchUserPreferences(data.user.user_id);
             } else {
                 router.push('/login');  
             }
@@ -33,30 +34,44 @@ const preferences = () => {
         fetchUserSession();
         }, [router]);
 
-        const fetchUserPreferences = async (userId) => {
-            try {
-                const response = await fetch(`/api/get_preference?userId=${userId}`);
-                const result = await response.json();
-    
-                if (response.ok && result.preference) {
-                    const pref = result.preference;
-                    setPreferenceId(pref.preference_id);
-                    setPreferredName(pref.preferred_name || '');
-                    setPhotoUrl(pref.photo_url || '');
-                    setLocation(pref.location || '');
-                    setMaxBudget(pref.max_budget);
-                    setPetsAllowed(pref.pets_allowed);
-                    setBedCount(pref.bed_count);
-                    setBathCount(pref.bath_count);
-                    setSmokingAllowed(pref.smoking_allowed);
-                    setAmenities(pref.amenities || '');
-                    setProfileBio(pref.profile_bio || '');
-                    setPreferencePrivate(pref.is_pref_private);
-                }
-            } catch (error) {
-                console.error("Error fetching preferences:", error);
+    const fetchUserPreferences = async (userId) => {
+        try {
+            const response = await fetch(`/api/get_preference?userId=${userId}`);
+            const result = await response.json();
+
+            console.log("API Response:", result); // Logs the full API response
+            console.log("Response status:", response.status); // Logs the HTTP status
+            console.log("Response OK:", response.ok); // Logs whether response.ok is true
+            console.log("Preference:", result.preference); // Logs the actual preference data
+
+            if (!response.ok) {
+                console.error("Response not OK:", response.status, result);
+                return;
             }
-        };
+
+            if (!result.preference) {
+                console.warn("No preference found in result");
+                return;
+            }
+
+            console.log("✅ Preferences found! Updating state.");
+            const pref = result.preference;
+            setPreferenceId(pref.preference_id);
+            setPreferredName(pref.preferred_name || '');
+            setPhotoUrl(pref.photo_url || '');
+            setLocation(pref.location || '');
+            setMaxBudget(pref.max_budget);
+            setPetsAllowed(pref.pets_allowed);
+            setBedCount(pref.bed_count);
+            setBathCount(pref.bath_count);
+            setSmokingAllowed(pref.smoking_allowed);
+            setAmenities(pref.amenities || '');
+            setProfileBio(pref.profile_bio || '');
+            setPreferencePrivate(pref.is_pref_private);
+        } catch (error) {
+            console.error("Error fetching preferences:", error);
+        }
+    };
     
 
     const handleSubmit = async (e) => {
@@ -113,7 +128,6 @@ const preferences = () => {
             setErrorMessage('Error: Could Not Add preference');
             console.error("Preference Error:", error);
         }
-
     }
 
     if (!user) return <p>Loading...</p>;
@@ -242,17 +256,11 @@ const preferences = () => {
                     />
                 </div>
 
-                <button type="submit">Save Preferences</button>
+                <button type="submit">{preferenceId ? "Update Preferences" : "Save Preferences"}</button>
             </form>
 
         </div>
     )
-    
-
-
 }
 
 export default preferences;
-
-
-
