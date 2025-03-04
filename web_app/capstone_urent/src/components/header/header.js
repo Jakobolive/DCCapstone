@@ -45,19 +45,19 @@ const Header = () => {
               <>
               <li><Link href="/dashboard">Dashboard</Link></li>
 
+              <li className="dropdown" onClick={() => toggleDropdown("preferences")}>
+                <span>Preferences ▼</span>
+                <ul className={`dropdown-menu ${openDropdown === "preferences" ? "show" : ""}`}>
+                  <li><Link href="/preferences">Tenant Preferences</Link></li>
+                  <li><Link href="/listings_preferences">Landlord Preferences</Link></li>
+                </ul>
+              </li>
+
               <li className="dropdown" onClick={() => toggleDropdown("matches")}>
                 <span>Matches ▼</span>
                 <ul className={`dropdown-menu ${openDropdown === "matches" ? "show" : ""}`}>
                   <li><Link href="/tenant_matches">Tenant Matches</Link></li>
                   <li><Link href="/landlord_matches">Landlord Matches</Link></li>
-                </ul>
-              </li>
-
-              <li className="dropdown" onClick={() => toggleDropdown("preferences")}>
-                <span>Preferences ▼</span>
-                <ul className={`dropdown-menu ${openDropdown === "preferences" ? "show" : ""}`}>
-                  <li><Link href="/preferences">Tenant Preferences</Link></li>
-                  <li><Link href="/listings">Landlord Listings</Link></li>
                 </ul>
               </li>
 
