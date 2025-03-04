@@ -47,7 +47,7 @@ const listings_preferences = () => {
             setErrorMessage('');
             setSuccessMessage('');
     
-            if (!trimmedLocation || !trimmedStreetAddress || !askingPrice || !bedCount || !bathCount || !amenities) {
+            if (!trimmedLocation || !trimmedStreetAddress || !askingPrice || !listingBedCount || !listingBathCount || !listingAmenities) {
                 setErrorMessage('Address, city, asking price, bed count, bath count, and amenities must be filled in!');
             }
     
@@ -87,7 +87,7 @@ const listings_preferences = () => {
                 setAskingPrice('');
                 setListingBedCount('');
                 setListingBathCount('');
-                setListingAmenities('');
+                setlistingAmenities('');
                 setListingPetsAllowed(false);
                 setListingSmokingAllowed(false);
                 setAvailability('');
@@ -173,7 +173,7 @@ const listings_preferences = () => {
                         <input 
                             type='text' 
                             value={listingAmenities} 
-                            onChange={(e) => setListingAmenities(e.target.value)} 
+                            onChange={(e) => setlistingAmenities(e.target.value)} 
                             required 
                         />
                     </div>
