@@ -1,5 +1,6 @@
 import 'package:capstone_app/main.dart';
 import 'package:capstone_app/providers/user_provider.dart'; // Ensure you import the provider
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,6 +43,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool smokingAllowed = false;
   bool isPrivate = false;
   final TextEditingController availabilityController = TextEditingController();
+
+  // Image related fields
+  File? listingPictureFile; // For mobile (Android/iOS)
+  Uint8List? listingPictureBytes; // For web
+
+  File? profilePictureFile; // For mobile (Android/iOS)
+  Uint8List? profilePictureBytes; // For web
 
   @override
   void initState() {
@@ -89,28 +97,156 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  // Function to pick Listing picture
+  // Function to pick the image the user selects.
   Future<void> _pickListingPicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
-      setState(() {
-        listingPicture = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes(); // Convert to Uint8List
+        setState(() {
+          listingPictureBytes = bytes; // Use Uint8List for web
+          print("🚨 Listing picture bytes: ${bytes.length}");
+          listingPictureFile = null; // Ensure File is null on web
+        });
+      } else {
+        setState(() {
+          listingPictureFile = File(pickedFile.path); // Use File for mobile
+          print("🚨 Listing picture file path: ${pickedFile.path}");
+          listingPictureBytes = null; // Ensure Uint8List is null on mobile
+        });
+      }
     }
   }
 
-  // Function to pick profile picture
   Future<void> _pickProfilePicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
-      setState(() {
-        profilePicture = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          profilePictureBytes = bytes;
+          print("🚨 Profile picture bytes: ${bytes.length}");
+          profilePictureFile = null;
+        });
+      } else {
+        setState(() {
+          profilePictureFile = File(pickedFile.path);
+          print("🚨 Profile picture file path: ${pickedFile.path}");
+          profilePictureBytes = null;
+        });
+      }
+    }
+  }
+
+  Future<String?> uploadFile(Uint8List? fileBytes, String fileName,
+      String storageBucket, String? oldFileUrl) async {
+    if (fileBytes == null) {
+      print("❌ Error: No file bytes provided.");
+      return null;
+    }
+
+    final storage = supabase.storage.from(storageBucket);
+
+    try {
+      if (oldFileUrl != null && oldFileUrl.isNotEmpty) {
+        Uri uri = Uri.parse(oldFileUrl);
+        List<String> segments = uri.pathSegments;
+
+        // Ensure the URL has the right structure: /storage/v1/object/public/<bucket-name>/<file-path>
+        if (segments.length > 4) {
+          String oldBucket =
+              segments[4]; // Bucket name is the 4th segment (index 4)
+          String oldFilePath = segments
+              .sublist(5)
+              .join('/'); // The file path starts from the 5th segment (index 4)
+
+          print(
+              "🚨 Deleting old file from bucket: $oldBucket, path: $oldFilePath");
+
+          // Use the extracted bucket name
+          final oldStorage = supabase.storage.from(oldBucket);
+          final deleteResponse = await oldStorage.remove([oldFilePath]);
+
+          if (deleteResponse.isNotEmpty) {
+            print("✅ Old file deleted successfully.");
+          } else {
+            print(
+                "⚠️ No files were deleted. Check if the path is correct. $deleteResponse");
+          }
+        } else {
+          print("⚠️ Invalid URL structure: $oldFileUrl");
+        }
+      }
+
+      print("🚨 Uploading file: $fileName to $storageBucket");
+
+      final response = await storage.uploadBinary(
+        'pictures/$fileName', // Path in Supabase Storage
+        fileBytes,
+        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+      );
+
+      print("✅ Upload successful: $response");
+      return storage.getPublicUrl('pictures/$fileName');
+    } catch (e) {
+      print("❌ Exception occurred during file upload: $e");
+      return null;
     }
   }
 
   Future<void> _saveProfile() async {
     try {
+      final int? userId = context.read<UserProvider>().userId;
+      String? profileUrl;
+      String? listingUrl;
+
+      // Generate timestamp
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+
+      // Retrieve existing profile photo URL
+      String? existingProfileUrl;
+      String? existingListingUrl;
+
+      if (userType == "Renter") {
+        final profileData = await supabase
+            .from('preferences_table')
+            .select('photo_url')
+            .eq('preference_id', profileID as Object)
+            .maybeSingle();
+
+        existingProfileUrl = profileData?['photo_url'];
+      } else if (userType == "Landlord") {
+        final listingData = await supabase
+            .from('listings_table')
+            .select('photo_url')
+            .eq('listing_id', profileID as Object)
+            .maybeSingle();
+
+        existingListingUrl = listingData?['photo_url'];
+      }
+
+      // Upload new profile picture
+      if (profilePictureBytes != null) {
+        String profileFileName = 'profile_${userId}_$timestamp.jpg';
+        profileUrl = await uploadFile(profilePictureBytes, profileFileName,
+            'profile_images', existingProfileUrl);
+        print("✅ Profile picture uploaded successfully: $profileUrl");
+      } else {
+        print('No new profile picture provided.');
+      }
+
+      // Upload new listing picture
+      if (listingPictureBytes != null) {
+        String listingFileName = 'listing_${userId}_$timestamp.jpg';
+        listingUrl = await uploadFile(listingPictureBytes, listingFileName,
+            'listing_images', existingListingUrl);
+        print("✅ Listing picture uploaded successfully: $listingUrl");
+      } else {
+        print('No new listing picture provided.');
+      }
+
       print("✅ Retrieved profileId: $profileID");
 
       // Determine table and update accordingly
@@ -129,7 +265,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               .update({
                 'preferred_name': nameController.text,
                 'profile_bio': bioController.text,
-                'photo_url': profilePicture?.path ?? "",
+                'photo_url': profileUrl ?? "",
                 'location': locationController.text,
                 'max_budget': int.tryParse(budgetController.text) ?? 0,
                 'pets_allowed': petsAllowed,
@@ -158,7 +294,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           final response = await supabase
               .from('listings_table')
               .update({
-                'photo_url': listingPicture?.path ?? "",
+                'photo_url': listingUrl ?? "",
                 'street_address': addressController.text,
                 'location': locationController.text,
                 'asking_price': int.tryParse(priceController.text) ?? 0,
@@ -245,14 +381,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       children: [
         GestureDetector(
           onTap: _pickProfilePicture,
-          child: CircleAvatar(
-            radius: 60,
-            backgroundImage: profilePicture != null
-                ? FileImage(profilePicture!)
-                : AssetImage("assets/placeholder.jpg") as ImageProvider,
-            child: profilePicture == null
-                ? Icon(Icons.camera_alt, size: 40, color: Colors.white)
-                : null,
+          child: _buildProfileImage(
+            profilePictureURL: profilePictureURL,
+            profilePictureBytes: profilePictureBytes,
+            profilePictureFile: profilePictureFile,
           ),
         ),
         _buildTextField("Preferred Name", nameController, Icons.people),
@@ -394,4 +526,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
       onChanged: (bool? newValue) => onChanged(newValue ?? false),
     );
   }
+}
+
+Widget _buildProfileImage({
+  required String? profilePictureURL,
+  required Uint8List? profilePictureBytes,
+  required File? profilePictureFile,
+}) {
+  if (kIsWeb) {
+    return CircleAvatar(
+      radius: 50,
+      backgroundImage: profilePictureBytes != null
+          ? MemoryImage(profilePictureBytes) // Show selected image
+          : (profilePictureURL != null && profilePictureURL.isNotEmpty
+              ? NetworkImage(profilePictureURL) // Show stored image
+              : AssetImage('assets/default_profile.png') as ImageProvider),
+    );
+  } else {
+    return CircleAvatar(
+      radius: 50,
+      backgroundImage: profilePictureFile != null
+          ? FileImage(profilePictureFile) // Show selected image
+          : (profilePictureURL != null && profilePictureURL.isNotEmpty
+              ? NetworkImage(profilePictureURL) // Show stored image
+              : AssetImage('assets/default_profile.png') as ImageProvider),
+    );
+  }
+}
+
+extension on List<FileObject> {
+  get error => null;
 }
