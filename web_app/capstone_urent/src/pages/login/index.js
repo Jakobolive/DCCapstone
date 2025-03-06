@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/router';
 import Link from 'next/link';   
 
 
@@ -8,6 +8,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   // Validates email
   const isEmailValid = (email) => {
@@ -18,17 +19,20 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const emailTrimmed = email.trim();
+    const passwordTrimmed = password.trim();
+
     // Reset error message
     setErrorMessage('');
 
     // If there is no email or password filled in
-    if (!email || !password) {
+    if (!emailTrimmed || !passwordTrimmed) {
       setErrorMessage('Please fill in both fields');
       return;
     }
 
     // validate the email
-    if (!isEmailValid(email)) {
+    if (!isEmailValid(emailTrimmed)) {
         setErrorMessage('Please enter a valid email address');
         return;
     }
@@ -37,30 +41,34 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-        const { user, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json'},
+            body: JSON.stringify({ email: emailTrimmed, password: passwordTrimmed }),
+            credentials: 'include'
         });
 
-        if (error) {
-            setErrorMessage('Invalid email or password');
-            setIsLoading(false);
-            return;
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Login failed');
         }
 
-        console.log('User logged in:', user);
+        console.log('User logged in:', result);
 
-        setIsLoading(false);
+        router.push('/dashboard').then(() =>{
+            window.location.reload();
+        });
+
     } catch (error) {
-        setErrorMessage('Error: Please try again.');
+        setErrorMessage('Error: ', error.message);
         setIsLoading(false);
-      }
+    }
 
-
+    setIsLoading(false);
   };
 
   return (
-    <div className="loginConatiner">
+    <div className="loginContainer">
         <h2>URent Login</h2>
 
         {/* Error Message Display */}
@@ -93,7 +101,7 @@ const Login = () => {
                 />
             </div>
 
-            <button type="submit">Login</button>
+            <button type="submit" disabled={isLoading}>{isLoading ? "Logging in..." : "Login"}</button>
 
             <div className="signUpLink">
                 <Link href="/sign_up">No Account? Sign Up Here</Link>
