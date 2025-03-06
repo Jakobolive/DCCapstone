@@ -50,6 +50,10 @@ const listings_preferences = () => {
             if (!trimmedLocation || !trimmedStreetAddress || !askingPrice || !listingBedCount || !listingBathCount || !listingAmenities) {
                 setErrorMessage('Address, city, asking price, bed count, bath count, and amenities must be filled in!');
             }
+
+            if (askingPrice < 0) {
+                setErrorMessage('Asking price needs to be a positive number');
+            }
     
             try {
                 const response = await fetch('/api/add_listing', {

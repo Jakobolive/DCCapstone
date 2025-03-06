@@ -51,9 +51,7 @@ export default async function handler(req, res) {
                     smoking_allowed: smokingAllowed,
                     availability: availability || null,
                     listing_bio: listingBio || null,
-                    is_listing_private: listingPrivate,
-                    created_at: new Date().toISOString()
-                }
+                    is_private: listingPrivate                }
             ])
             .select();
 

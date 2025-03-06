@@ -65,6 +65,7 @@ const Header = () => {
               <span>{user.first_name} Profile ▼</span>
                 <ul className={`dropdown-menu ${openDropdown === "profile" ? "show" : ""}`}>
                   <li><Link href="/edit_password">Edit Password</Link></li>
+                  <li><Link href="/all_listings">Your Listings</Link></li>
                   <li><button onClick={handleLogout} className="logout-button">Logout</button></li>
                 </ul>
               </li>

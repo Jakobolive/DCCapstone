@@ -90,6 +90,10 @@ const preferences = () => {
             setErrorMessage('You must enter a preferred location');
         }
 
+        if (maxBudget < 0 ) {
+            setErrorMessage('Budget must be a positive number');
+        } 
+
         try {
             const apiFileLocation = preferenceId ? `/api/edit_preference` : `/api/add_preference`;
             const responeMethod = preferenceId ? 'PUT' : 'POST';
