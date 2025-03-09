@@ -7,12 +7,16 @@ class UserProvider extends ChangeNotifier {
   Map<String, dynamic>? _selectedProfile;
   List<Map<String, dynamic>> _renterProfiles = [];
   List<Map<String, dynamic>> _landlordProfiles = [];
+  List<Map<String, dynamic>> _profiles =
+      []; // Store fetched listings or preferences
 
   int? get userId => _userId;
   String? get userType => _userType;
   Map<String, dynamic>? get selectedProfile => _selectedProfile;
   List<Map<String, dynamic>> get renterProfiles => _renterProfiles;
   List<Map<String, dynamic>> get landlordProfiles => _landlordProfiles;
+  List<Map<String, dynamic>> get profiles =>
+      _profiles; // Expose listings or preferences
 
   void setUserId(int id) {
     _userId = id;
@@ -26,6 +30,7 @@ class UserProvider extends ChangeNotifier {
     _selectedProfile = null;
     _renterProfiles = [];
     _landlordProfiles = [];
+    _profiles = []; // Clear listings or preferences
     notifyListeners();
   }
 
@@ -33,6 +38,7 @@ class UserProvider extends ChangeNotifier {
     if (_userId == null) return;
 
     try {
+      // Fetch profiles for Renters and Landlords
       final preferenceResponse = await supabase
           .from('preferences_table')
           .select('*')
@@ -46,15 +52,45 @@ class UserProvider extends ChangeNotifier {
       _renterProfiles = List<Map<String, dynamic>>.from(preferenceResponse);
       _landlordProfiles = List<Map<String, dynamic>>.from(listingResponse);
 
-      // ✅ Automatically select the first available profile (prioritizing Renters)
-      if (_renterProfiles.isNotEmpty) {
-        setSelectedProfile(_renterProfiles.first, "Renter");
-      } else if (_landlordProfiles.isNotEmpty) {
-        setSelectedProfile(_landlordProfiles.first, "Landlord");
-      } else {
-        _selectedProfile = null;
-        _userType = null;
+      // Preserve the current profile if possible
+      Map<String, dynamic>? existingProfile;
+      if (_selectedProfile != null) {
+        final profilesToSearch =
+            _userType == "Renter" ? _renterProfiles : _landlordProfiles;
+
+        if (_userType == "Renter") {
+          existingProfile = profilesToSearch.firstWhere(
+            (profile) =>
+                profile['preference_id'] == _selectedProfile?['preference_id'],
+            orElse: () =>
+                <String, dynamic>{}, // Return an empty map if no match is found
+          );
+        } else if (_userType == "Landlord") {
+          existingProfile = profilesToSearch.firstWhere(
+            (profile) =>
+                profile['listing_id'] == _selectedProfile?['listing_id'],
+            orElse: () =>
+                <String, dynamic>{}, // Return an empty map if no match is found
+          );
+        }
       }
+
+      if (existingProfile != null && existingProfile.isNotEmpty) {
+        setSelectedProfile(existingProfile, _userType!);
+      } else {
+        // If no existing profile is found, select the first available one
+        if (_renterProfiles.isNotEmpty) {
+          setSelectedProfile(_renterProfiles.first, "Renter");
+        } else if (_landlordProfiles.isNotEmpty) {
+          setSelectedProfile(_landlordProfiles.first, "Landlord");
+        } else {
+          _selectedProfile = null;
+          _userType = null;
+        }
+      }
+
+      // Fetch listings or preferences based on user type
+      fetchListingsOrPreferences();
 
       notifyListeners();
     } catch (e) {
@@ -67,9 +103,38 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  void fetchListingsOrPreferences() async {
+    print("User ID before query: $_userId");
+
+    if (_userId == null) {
+      print("User ID is null");
+      return; // Handle the null case or exit early
+    }
+
+    if (_userType == "Renter") {
+      final renterListings = await supabase
+          .from('listings_table')
+          .select('*')
+          .neq('user_id', _userId!);
+
+      _profiles = List<Map<String, dynamic>>.from(renterListings);
+    } else if (_userType == "Landlord") {
+      final landlordPreferences = await supabase
+          .from('preferences_table')
+          .select('*')
+          .neq('user_id', _userId!);
+
+      _profiles = List<Map<String, dynamic>>.from(landlordPreferences);
+    }
+
+    print("Profiles fetched: $_profiles");
+    notifyListeners();
+  }
+
   void setSelectedProfile(Map<String, dynamic> profile, String type) {
     _selectedProfile = profile;
     _userType = type;
+    fetchListingsOrPreferences(); // Fetch listings or preferences after selecting a profile
     notifyListeners();
   }
 }

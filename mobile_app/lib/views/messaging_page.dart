@@ -86,56 +86,59 @@ class ChatScreen extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Messages"),
+        title: const Text("Messaging Page"),
         centerTitle: true,
         backgroundColor: Colors.teal,
         actions: [
-          // Profile Dropdown (Shows renter profiles first, otherwise landlord profiles)
-          if (userProvider.renterProfiles.isNotEmpty ||
-              userProvider.landlordProfiles.isNotEmpty)
+          if ((userProvider.renterProfiles?.isNotEmpty ?? false) ||
+              (userProvider.landlordProfiles?.isNotEmpty ?? false))
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: DropdownButton<Map<String, dynamic>>(
-                value: userProvider.selectedProfile,
-                hint: const Text("Select Profile"),
-                dropdownColor: Colors.white,
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                onChanged: (Map<String, dynamic>? newValue) {
-                  if (newValue != null) {
-                    final isRenter =
-                        userProvider.renterProfiles.contains(newValue);
-                    userProvider.setSelectedProfile(
-                        newValue, isRenter ? "Renter" : "Landlord");
-                  }
-                },
-                items: [
-                  ...userProvider.renterProfiles.map((profile) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: profile,
-                      child:
-                          Text(profile['preferred_name'] ?? "Renter Profile"),
-                    );
-                  }),
-                  ...userProvider.landlordProfiles.map((profile) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: profile,
-                      child:
-                          Text(profile['street_address'] ?? "Landlord Profile"),
-                    );
-                  }),
-                ],
-              ),
-            ),
-
-          // Refresh Button
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: DropdownButton<Map<String, dynamic>>(
+                  value: (userProvider.selectedProfile != null &&
+                          (userProvider.renterProfiles?.contains(
+                                      userProvider.selectedProfile!) ==
+                                  true ||
+                              userProvider.landlordProfiles?.contains(
+                                      userProvider.selectedProfile!) ==
+                                  true))
+                      ? userProvider.selectedProfile
+                      : null, // Ensures the value exists in the list
+                  hint: const Text("Select Profile"),
+                  dropdownColor: Colors.white,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  onChanged: (Map<String, dynamic>? newValue) {
+                    if (newValue != null) {
+                      final profileType = newValue['userType'];
+                      userProvider.setSelectedProfile(newValue,
+                          profileType == 'Renter' ? "Renter" : "Landlord");
+                    }
+                  },
+                  items: [
+                    if (userProvider.renterProfiles != null)
+                      ...userProvider.renterProfiles!.map((profile) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: profile,
+                          child: Text(
+                              profile['preferred_name'] ?? "Renter Profile"),
+                        );
+                      }),
+                    if (userProvider.landlordProfiles != null)
+                      ...userProvider.landlordProfiles!.map((profile) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: profile,
+                          child: Text(
+                              profile['street_address'] ?? "Landlord Profile"),
+                        );
+                      }),
+                  ],
+                )),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
               await userProvider.fetchProfiles();
             },
           ),
-
-          // Profile Creation Icon
           IconButton(
             icon: const Icon(Icons.person_add),
             onPressed: () {

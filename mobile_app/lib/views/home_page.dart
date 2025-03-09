@@ -24,21 +24,6 @@ class SwipeExampleApp extends StatelessWidget {
 }
 
 class SwipePage extends StatelessWidget {
-  final List<Map<String, String>> listings = [
-    {
-      "image":
-          "https://images.unsplash.com/photo-1570129477492-45c003edd2be?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400",
-      "title": "Modern Apartment",
-      "price": "\$1,200/month"
-    },
-    {
-      "image":
-          "https://images.unsplash.com/photo-1560185127-6c4f2bafec15?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400",
-      "title": "Cozy Studio",
-      "price": "\$800/month"
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
@@ -49,52 +34,56 @@ class SwipePage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.teal,
         actions: [
-          // Profile Dropdown (Shows renter profiles first, otherwise landlord profiles)
-          if (userProvider.renterProfiles.isNotEmpty ||
-              userProvider.landlordProfiles.isNotEmpty)
+          if ((userProvider.renterProfiles?.isNotEmpty ?? false) ||
+              (userProvider.landlordProfiles?.isNotEmpty ?? false))
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: DropdownButton<Map<String, dynamic>>(
-                value: userProvider.selectedProfile,
-                hint: const Text("Select Profile"),
-                dropdownColor: Colors.white,
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                onChanged: (Map<String, dynamic>? newValue) {
-                  if (newValue != null) {
-                    final isRenter =
-                        userProvider.renterProfiles.contains(newValue);
-                    userProvider.setSelectedProfile(
-                        newValue, isRenter ? "Renter" : "Landlord");
-                  }
-                },
-                items: [
-                  ...userProvider.renterProfiles.map((profile) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: profile,
-                      child:
-                          Text(profile['preferred_name'] ?? "Renter Profile"),
-                    );
-                  }),
-                  ...userProvider.landlordProfiles.map((profile) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: profile,
-                      child:
-                          Text(profile['street_address'] ?? "Landlord Profile"),
-                    );
-                  }),
-                ],
-              ),
-            ),
-
-          // Refresh Button
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: DropdownButton<Map<String, dynamic>>(
+                  value: (userProvider.selectedProfile != null &&
+                          (userProvider.renterProfiles?.contains(
+                                      userProvider.selectedProfile!) ==
+                                  true ||
+                              userProvider.landlordProfiles?.contains(
+                                      userProvider.selectedProfile!) ==
+                                  true))
+                      ? userProvider.selectedProfile
+                      : null, // Ensures the value exists in the list
+                  hint: const Text("Select Profile"),
+                  dropdownColor: Colors.white,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  onChanged: (Map<String, dynamic>? newValue) {
+                    if (newValue != null) {
+                      final profileType = newValue['userType'];
+                      userProvider.setSelectedProfile(newValue,
+                          profileType == 'Renter' ? "Renter" : "Landlord");
+                      userProvider.fetchProfiles();
+                    }
+                  },
+                  items: [
+                    if (userProvider.renterProfiles != null)
+                      ...userProvider.renterProfiles!.map((profile) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: profile,
+                          child: Text(
+                              profile['preferred_name'] ?? "Renter Profile"),
+                        );
+                      }),
+                    if (userProvider.landlordProfiles != null)
+                      ...userProvider.landlordProfiles!.map((profile) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: profile,
+                          child: Text(
+                              profile['street_address'] ?? "Landlord Profile"),
+                        );
+                      }),
+                  ],
+                )),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
               await userProvider.fetchProfiles();
             },
           ),
-
-          // Profile Creation Icon
           IconButton(
             icon: const Icon(Icons.person_add),
             onPressed: () {
@@ -103,55 +92,98 @@ class SwipePage extends StatelessWidget {
           ),
         ],
       ),
-      body: Swiper(
-        itemBuilder: (BuildContext context, int index) {
-          return Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: Image.network(
-                      listings[index]['image']!,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        listings[index]['title']!,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+      body: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
+          final isRenter = userProvider.selectedProfile != null &&
+              userProvider.userType! == 'Renter';
+
+          print('isRenter: $isRenter');
+
+          // Determine which data to show based on the user type
+          final profilesToShow = userProvider.profiles;
+
+          return profilesToShow?.isEmpty ?? true
+              ? const Center(child: CircularProgressIndicator())
+              : Swiper(
+                  itemBuilder: (BuildContext context, int index) {
+                    // Determine whether to show profile or listing data
+                    final data =
+                        profilesToShow![index]; // Renters see Landlord profiles
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      Text(
-                        listings[index]['price']!,
-                        style:
-                            const TextStyle(fontSize: 16, color: Colors.grey),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(20)),
+                              child: Image.network(
+                                data['photo_url'] ?? '',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(child: Icon(Icons.error));
+                                },
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (isRenter) ...[
+                                  // Assuming it is a renter profile, display listings.
+                                  Text(
+                                    data['street_address'] ?? "No title",
+                                    style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    data['asking_price']?.toString() ??
+                                        "No price",
+                                    style: const TextStyle(
+                                        fontSize: 16, color: Colors.grey),
+                                  ),
+                                  Text(
+                                    data['listing_bio'] ?? "No Bio Available",
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ]
+                                // For Renters, show preference-specific information
+                                else if (!isRenter) ...[
+                                  Text(
+                                    data['preferred_name'] ??
+                                        "No preferred name",
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    data['profile_bio'] ?? "No Bio Available",
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-        itemCount: listings.length,
-        itemWidth: MediaQuery.of(context).size.width * 0.85,
-        itemHeight: MediaQuery.of(context).size.height * 0.6,
-        layout: SwiperLayout.DEFAULT,
-        onIndexChanged: (index) {
-          print('Swiped to card at index: $index');
-        },
-        onTap: (index) {
-          print('Tapped on card at index: $index');
+                    );
+                  },
+                  itemCount: profilesToShow.length ?? 0,
+                  // ? profilesToShow?.length ?? 0
+                  // : listingsToShow?.length ?? 0,
+                  itemWidth: MediaQuery.of(context).size.width * 0.85,
+                  itemHeight: MediaQuery.of(context).size.height * 0.6,
+                  layout: SwiperLayout.DEFAULT,
+                  onIndexChanged: (index) {
+                    print('Swiped to card at index: $index');
+                  },
+                  onTap: (index) {
+                    print('Tapped on card at index: $index');
+                  },
+                );
         },
       ),
     );

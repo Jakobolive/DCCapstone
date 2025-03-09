@@ -1,6 +1,9 @@
-import 'package:capstone_app/main.dart';
+import 'dart:typed_data';
+
 import 'package:capstone_app/providers/user_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,6 +20,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
   String? userType; // Determines if the user is a renter or landlord
   final ImagePicker _picker = ImagePicker();
+  File? pickedFile;
   final _formKey = GlobalKey<FormState>();
 
   // Common fields
@@ -41,6 +45,13 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   bool isPrivate = false;
   final TextEditingController availabilityController = TextEditingController();
   File? listingPicture;
+
+  // Image related fields
+  File? listingPictureFile; // For mobile (Android/iOS)
+  Uint8List? listingPictureBytes; // For web
+
+  File? profilePictureFile; // For mobile (Android/iOS)
+  Uint8List? profilePictureBytes; // For web
 
   @override
   void initState() {
@@ -83,75 +94,163 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Function to pick Listing picture
+  // Function to pick the image the user selects.
   Future<void> _pickListingPicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
-      setState(() {
-        listingPicture = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes(); // Convert to Uint8List
+        setState(() {
+          listingPictureBytes = bytes; // Use Uint8List for web
+          print("🚨 Listing picture bytes: ${bytes.length}");
+          listingPictureFile = null; // Ensure File is null on web
+        });
+      } else {
+        setState(() {
+          listingPictureFile = File(pickedFile.path); // Use File for mobile
+          print("🚨 Listing picture file path: ${pickedFile.path}");
+          listingPictureBytes = null; // Ensure Uint8List is null on mobile
+        });
+      }
     }
   }
 
-  // Function to pick profile picture
   Future<void> _pickProfilePicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
-      setState(() {
-        profilePicture = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          profilePictureBytes = bytes;
+          print("🚨 Profile picture bytes: ${bytes.length}");
+          profilePictureFile = null;
+        });
+      } else {
+        setState(() {
+          profilePictureFile = File(pickedFile.path);
+          print("🚨 Profile picture file path: ${pickedFile.path}");
+          profilePictureBytes = null;
+        });
+      }
+    }
+  }
+
+  Future<String?> uploadFile(
+      Uint8List? fileBytes, String fileName, String storageBucket) async {
+    if (fileBytes == null) {
+      print("❌ Error: No file bytes provided.");
+      return null;
+    }
+
+    try {
+      print("🚨 Uploading file: $fileName to $storageBucket");
+
+      final response = await supabase.storage.from(storageBucket).uploadBinary(
+            'pictures/$fileName', // Path in Supabase Storage
+            fileBytes, // Upload as raw Uint8List
+            fileOptions: const FileOptions(contentType: 'image/jpeg'),
+          );
+
+      print("✅ Upload successful: $response");
+      return response;
+    } catch (e) {
+      print("❌ Exception occurred during file upload: $e");
+      return null;
     }
   }
 
   Future<void> _saveProfile() async {
     try {
       final int? userId = context.read<UserProvider>().userId;
-      print("✅ Retrieved userId: $userId");
+      String? profileUrl;
+      String? listingUrl;
 
-      // Determine table depending on user type.
+      // Generate timestamp
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      // Profile picture upload
+      if (profilePictureBytes != null) {
+        String profileFileName = 'profile_${userId}_$timestamp.jpg';
+        profileUrl = await uploadFile(
+            profilePictureBytes, profileFileName, 'profile_images');
+        print("✅ Profile picture uploaded successfully: $profileUrl");
+      } else {
+        print('No profile picture provided.');
+      }
+
+      // Listing picture upload
+      if (listingPictureBytes != null) {
+        String listingFileName = 'listing_${userId}_$timestamp.jpg';
+        listingUrl = await uploadFile(
+            listingPictureBytes, listingFileName, 'listing_images');
+        print("✅ Listing picture uploaded successfully: $listingUrl");
+      } else {
+        print('No listing picture provided.');
+      }
+
+      // Determine the table depending on user type and insert data
       if (userType == "Renter") {
         final response = await supabase.from('preferences_table').insert({
           'user_id': userId,
-          'preferred_name': nameController.text ?? "NA",
-          'profile_bio': bioController.text ?? "NA",
-          'photo_url': profilePicture?.path ?? "",
-          'location': locationController.text ?? "Unknown",
-          'max_budget': int.tryParse(budgetController.text) ?? 0,
-          'pets_allowed': petsAllowed,
-          'smoking_allowed': smokingAllowed,
-          'bed_count': bedCount,
-          'bath_count': bathCount,
-          'amenities': amenitiesController.text,
-          'is_pref_private': prefPrivate,
+          'preferred_name':
+              nameController.text.isNotEmpty ? nameController.text : "NA",
+          'profile_bio':
+              bioController.text.isNotEmpty ? bioController.text : "NA",
+          'photo_url': profileUrl ?? "", // Fallback to empty string if null
+          'location': locationController.text.isNotEmpty
+              ? locationController.text
+              : "Unknown",
+          'max_budget': int.tryParse(budgetController.text) ??
+              0, // Default to 0 if not parsable
+          'pets_allowed': petsAllowed ?? false, // Use default value if null
+          'smoking_allowed': nonSmoking ?? false, // Use default value if null
+          'bed_count': bedCount ?? 0, // Default to 0 if null
+          'bath_count': bathCount ?? 0, // Default to 0 if null
+          'amenities': amenitiesController.text.isNotEmpty
+              ? amenitiesController.text
+              : "",
+          'is_pref_private': prefPrivate ?? false, // Default to false if null
         }).select();
         print(response);
       } else if (userType == "Landlord") {
         final response = await supabase.from('listings_table').insert({
           'user_id': userId,
-          'photo_url': listingPicture?.path ?? "",
-          'street_address': addressController.text ?? "Unknown",
-          'location': locationController.text ?? "Unknown",
-          'asking_price': int.tryParse(priceController.text) ?? 0,
-          'bed_count': bedCount,
-          'bath_count': bathCount,
-          'amenities': amenitiesController.text,
-          'pets_allowed': petsAllowed,
-          'smoking_allowed': smokingAllowed,
-          'availability': availabilityController.text,
-          'listing_bio': bioController.text,
-          'is_private': isPrivate,
+          'photo_url': listingUrl ?? "", // Fallback to empty string if null
+          'street_address': addressController.text.isNotEmpty
+              ? addressController.text
+              : "Unknown",
+          'location': locationController.text.isNotEmpty
+              ? locationController.text
+              : "Unknown",
+          'asking_price': int.tryParse(priceController.text) ??
+              0, // Default to 0 if not parsable
+          'bed_count': bedCount ?? 0, // Default to 0 if null
+          'bath_count': bathCount ?? 0, // Default to 0 if null
+          'amenities': amenitiesController.text.isNotEmpty
+              ? amenitiesController.text
+              : "",
+          'pets_allowed': petsAllowed ?? false, // Default to false if null
+          'smoking_allowed':
+              smokingAllowed ?? false, // Default to false if null
+          'availability': availabilityController.text.isNotEmpty
+              ? availabilityController.text
+              : "NA",
+          'listing_bio':
+              bioController.text.isNotEmpty ? bioController.text : "NA",
+          'is_private': isPrivate ?? false, // Default to false if null
         }).select();
         print(response);
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profile saved successfully!")),
-      );
+      // Show success message and navigate
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Profile saved successfully!")));
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Account Build Failed: $e")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Account Build Failed: $e")));
+      print("❌ Error: $e");
     }
   }
 
@@ -212,9 +311,9 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           onTap: _pickProfilePicture,
           child: CircleAvatar(
             radius: 60,
-            backgroundImage: profilePicture != null
-                ? FileImage(profilePicture!)
-                : AssetImage("assets/placeholder.jpg") as ImageProvider,
+            // backgroundImage: profilePicture != null
+            //     ? FileImage(profilePicture!)
+            //     : AssetImage("assets/placeholder.jpg") as ImageProvider,
             child: profilePicture == null
                 ? Icon(Icons.camera_alt, size: 40, color: Colors.white)
                 : null,
@@ -369,4 +468,10 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       onChanged: (bool? newValue) => onChanged(newValue ?? false),
     );
   }
+}
+
+extension on String {
+  get error => null;
+
+  get data => null;
 }
