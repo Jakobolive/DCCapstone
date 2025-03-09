@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: "User already has a listing of the same address." });
         }
 
-        const { newListing, listingError } = await supabase
+        const { data: newListing, error: listingError } = await supabase
             .from('listings_table')
             .insert([
                 {

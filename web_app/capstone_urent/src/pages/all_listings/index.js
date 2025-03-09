@@ -63,24 +63,34 @@ const AllListings = () => {
 
     return (
         <div className="container">
-        <h2>My Listings</h2>
+        <h2>{user.first_name} Listings</h2>
 
         {errorMessage && <div className="errorMessage">{errorMessage}</div>}
 
         {listings.length === 0 ? (
-            <p>You have no listings. <a href="/add-listing">Add a listing</a></p>
+            <div className="signUpLink">
+                <Link href="/listings_preference">You have no listings. Add one here.</Link>
+            </div>
         ) : (
             <ul className="listings">
                 {listings.map((listing) => (
                     <li key={listing.listing_id} className="listing-item">
-                        <img src={listing.photo_url || '/placeholder.jpg'} alt="Listing" className="listing-img" />
+                        <img src={listing.photo_url} alt="ListingImg" className="listing-img" />
                         <div>
                             <h3>{listing.street_address}, {listing.location}</h3>
                             <p><strong>Price:</strong> ${listing.asking_price}</p>
                             <p><strong>Beds:</strong> {listing.bed_count} | <strong>Baths:</strong> {listing.bath_count}</p>
                             <p><strong>Amenities:</strong> {listing.amenities}</p>
-                            <button onClick={() => router.push(`/edit-listing/${listing.listing_id}`)}>Edit</button>
-                            <button onClick={() => handleDelete(listing.listing_id)} className="delete-btn">Delete</button>
+                            <p><strong>Listing Bio:</strong> {listing.listing_bio}</p>
+                            <p><strong>Pets Allowed:</strong> {listing.pets_allowed ? "Yes" : "No"}</p>
+                            <p><strong>Smoking Allowed:</strong> {listing.smoking_allowed ? "Yes" : "No"}</p>
+                            <p><strong>Availability:</strong> {listing.availability ? listing.availability : "Not specified"}</p>
+                            <p><strong>Private Listing:</strong> {listing.is_private ? "Yes" : "No"}</p>
+
+                            <div className='button-divider'>
+                                <button onClick={() => router.push(`/edit_listing/${listing.listing_id}`)} className='listing-button'>Edit</button>
+                                <button onClick={() => handleDelete(listing.listing_id)} className="listing-button">Delete</button>
+                            </div>
                         </div>
                     </li>
                 ))}

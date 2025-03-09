@@ -11,17 +11,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { userId } = req.query;
+    const { listing_id } = req.query;
 
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
+    if (!listing_id) {
+        return res.status(400).json({ error: 'Missing listing_id parameter' });
     }
 
     try {
         const { data: listings, getListingsError } = await supabase
             .from('listings_table')
             .select('*')
-            .eq('user_id', userId);
+            .eq('listing_id', listing_id)
+            .single();
 
         if (getListingsError) {
             console.log("Error fetching the listing data:", getListingsError);

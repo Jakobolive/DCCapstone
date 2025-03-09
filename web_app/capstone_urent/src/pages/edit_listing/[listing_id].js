@@ -1,23 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-const listings_preferences = () => {
-    const [user, setUser] = useState(null);  
+const editListing = () => {
+    const router = useRouter();
+    const { listing_id } = router.query;
+    const [user, setUser] = useState(null);
+    const [listing, setListing] = useState(null); 
     const [photoUrl, setPhotoUrl] = useState('');
     const [streetAddress, setStreetAddress] = useState('');
     const [listingLocation, setListingLocation] = useState('');
-    const [askingPrice, setAskingPrice] = useState(null);
-    const [listingBedCount, setListingBedCount] = useState(null);
-    const [listingBathCount, setListingBathCount] = useState(null);
+    const [askingPrice, setAskingPrice] = useState('');
+    const [listingBedCount, setListingBedCount] = useState('');
+    const [listingBathCount, setListingBathCount] = useState('');
     const [listingAmenities, setlistingAmenities] = useState('');
     const [listingPetsAllowed, setListingPetsAllowed] = useState(false);
     const [listingSmokingAllowed, setListingSmokingAllowed] = useState(false);
-    const [availability, setAvailability] = useState(null);
+    const [availability, setAvailability] = useState('');
     const [listingBio, setListingBio] = useState('');
-    const [listingPrivate, setListingPrivate] = useState(null);
+    const [listingPrivate, setListingPrivate] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const router = useRouter();
 
     useEffect(() => {
         const fetchUserSession = async () => {
@@ -29,83 +31,98 @@ const listings_preferences = () => {
                 router.push('/login');  
             }
         };
+    
         fetchUserSession();
         }, [router]);
 
-
-        const handleSubmit = async (e) => {
-            e.preventDefault();
+    useEffect(() => {
+        if (!listing_id || !user) return;
     
-            const trimmedStreetAddress = streetAddress.trim();
-            const trimmedLocation = listingLocation.trim();
-            const trimmedAmenities = listingAmenities.trim();
-            const trimmedListingBio = listingBio.trim();
-            const trimmedPhotoUrl = photoUrl.trim();
-    
-            setErrorMessage('');
-            setSuccessMessage('');
-    
-            if (!trimmedLocation || !trimmedStreetAddress || !askingPrice || !listingBedCount || !listingBathCount || !listingAmenities) {
-                setErrorMessage('Address, city, asking price, bed count, bath count, and amenities must be filled in!');
-            }
-
-            if (askingPrice < 0) {
-                setErrorMessage('Asking price needs to be a positive number');
-            }
-    
+        const fetchUserListings = async () => {
             try {
-                const response = await fetch('/api/add_listing', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ photoUrl: trimmedPhotoUrl || null,
-                        streetAddress: trimmedStreetAddress,
-                        location: trimmedLocation,
-                        askingPrice, 
-                        bedCount: listingBedCount,
-                        bathCount: listingBathCount,
-                        amenities: trimmedAmenities,
-                        petsAllowed: listingPetsAllowed,
-                        smokingAllowed: listingSmokingAllowed,
-                        availability: availability || null,
-                        listingBio: trimmedListingBio || null,
-                        userId: user.user_id,
-                        listingPrivate
-                    })
-                });
-    
+                const response = await fetch(`/api/get_listing_edit?listing_id=${listing_id}`);
                 const result = await response.json();
-                console.log("Server Response:", result);
+    
+                console.log("API Response:", result); // Logs the full API response
     
                 if (!response.ok) {
-                    console.error("Listing Error:", result); 
-                    setErrorMessage('Error: Could Not Add listing');
+                    setErrorMessage('Error fetching listing data');
+                    return;
                 }
+
+                if (result.listings.user_id !== user.user_id) {
+                    setErrorMessage("You are not authorized to edit this listing.");
+                    return;
+                }
+                
     
-                console.log("Listing Added:", result);
-                setSuccessMessage('Listing successfully added!');
-                setPhotoUrl('');
-                setStreetAddress('');
-                setListingLocation('');
-                setAskingPrice('');
-                setListingBedCount('');
-                setListingBathCount('');
-                setlistingAmenities('');
-                setListingPetsAllowed(false);
-                setListingSmokingAllowed(false);
-                setAvailability('');
-                setListingBio('');
-                setListingPrivate(false);
+                console.log("✅ Listing found! Updating state.");
+                
+                setListing(result);
+                setPhotoUrl(result.listings.photo_url || '');
+                setStreetAddress(result.listings.street_address || '');
+                setListingLocation(result.listings.location || '');
+                setAskingPrice(result.listings.asking_price || '');
+                setListingBedCount(result.listings.bed_count || '');
+                setListingBathCount(result.listings.bath_count || '');
+                setlistingAmenities(result.listings.amenities || '');
+                setListingPetsAllowed(result.listings.pets_allowed ?? false);
+                setListingSmokingAllowed(result.listings.smoking_allowed ?? false);
+                setAvailability(result.listings.availability || '');
+                setListingBio(result.listings.listing_bio || '');
+                setListingPrivate(result.listings.is_private ?? false);
             } catch (error) {
-                setErrorMessage('Error: Could Not Add Listing');
-                console.error("Listing Error:", error);
+                console.error("Error fetching preferences:", error);
+                setErrorMessage('Failed to load listing details.');
             }
+        };
+
+        fetchUserListings();
+    }, [listing_id, user]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setErrorMessage('');
+        setSuccessMessage('');
+
+        try {
+            const response = await fetch('/api/edit_listing', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    listingId: listing_id,
+                    photoUrl,
+                    streetAddress,
+                    location: listingLocation,
+                    askingPrice,
+                    bedCount: listingBedCount,
+                    bathCount: listingBathCount,
+                    amenities: listingAmenities,
+                    petsAllowed: listingPetsAllowed,
+                    smokingAllowed: listingSmokingAllowed,
+                    availability,
+                    listingBio,
+                    listingPrivate
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                setErrorMessage(result.error || 'Failed to update listing');
+                return;
+            }
+
+            setSuccessMessage('Listing updated successfully!');
+        } catch (error) {
+            console.error("Error updating listing:", error);
+            setErrorMessage('Error updating listing');
         }
-    
-        if (!user) return <p>Loading...</p>;
-    
-        return (
-            <div className='loginContainer'>
-                <h2>Add a listing</h2>
+    };
+
+    return (
+        <div className='loginContainer'>
+                <h2>Edit a listing</h2>
 
                 {errorMessage && <div className="errorMessage">{errorMessage}</div>}
                 {successMessage && <div className="successMessage">{successMessage}</div>}
@@ -224,11 +241,11 @@ const listings_preferences = () => {
                         />
                     </div>
 
-                    <button type='submit'>Add Listing</button>
+                    <button type='submit'>Edit Listing</button>
 
                 </form>
             </div>
-        )
+    )
 }
 
-export default listings_preferences;
+export default editListing;
