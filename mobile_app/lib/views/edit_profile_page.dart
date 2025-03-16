@@ -51,6 +51,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   File? profilePictureFile; // For mobile (Android/iOS)
   Uint8List? profilePictureBytes; // For web
 
+  // Bool to determine picture deletion.
+  bool pictureChanged = false;
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +120,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         });
       }
     }
+    pictureChanged = true;
   }
 
   Future<void> _pickProfilePicture() async {
@@ -138,6 +142,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         });
       }
     }
+    pictureChanged = true;
   }
 
   Future<String?> uploadFile(Uint8List? fileBytes, String fileName,
@@ -150,7 +155,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final storage = supabase.storage.from(storageBucket);
 
     try {
-      if (oldFileUrl != null && oldFileUrl.isNotEmpty) {
+      if (oldFileUrl != null && oldFileUrl.isNotEmpty && pictureChanged) {
         Uri uri = Uri.parse(oldFileUrl);
         List<String> segments = uri.pathSegments;
 
@@ -260,24 +265,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         if (existingProfile != null) {
           // Update existing profile
+          final updateData = {
+            'preferred_name': nameController.text,
+            'profile_bio': bioController.text,
+            'location': locationController.text,
+            'max_budget': int.tryParse(budgetController.text) ?? 0,
+            'pets_allowed': petsAllowed,
+            'smoking_allowed': smokingAllowed,
+            'bed_count': bedCount,
+            'bath_count': bathCount,
+            'amenities': amenitiesController.text,
+            'is_pref_private': prefPrivate,
+          };
+
+          // Conditionally add 'photo_url' only if pictureChanged is true
+          if (pictureChanged && profileUrl != null) {
+            updateData['photo_url'] = profileUrl;
+          }
+
           final response = await supabase
               .from('preferences_table')
-              .update({
-                'preferred_name': nameController.text,
-                'profile_bio': bioController.text,
-                'photo_url': profileUrl ?? "",
-                'location': locationController.text,
-                'max_budget': int.tryParse(budgetController.text) ?? 0,
-                'pets_allowed': petsAllowed,
-                'smoking_allowed': smokingAllowed,
-                'bed_count': bedCount,
-                'bath_count': bathCount,
-                'amenities': amenitiesController.text,
-                'is_pref_private': prefPrivate,
-              })
+              .update(updateData)
               .eq('preference_id', profileID as Object)
               .select();
-          print("✅ Updated profile: $response");
+
+          print("✅ Updated listing: $response");
         } else {
           print("⚠️ No existing profile found for userId: $profileID");
         }
@@ -291,24 +303,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         if (existingListing != null) {
           // Update existing listing
+          final updateData = {
+            'street_address': addressController.text,
+            'location': locationController.text,
+            'asking_price': int.tryParse(priceController.text) ?? 0,
+            'bed_count': bedCount,
+            'bath_count': bathCount,
+            'amenities': amenitiesController.text,
+            'pets_allowed': petsAllowed,
+            'smoking_allowed': smokingAllowed,
+            'availability': availabilityController.text,
+            'listing_bio': bioController.text,
+            'is_private': isPrivate,
+          };
+
+          // Conditionally add 'photo_url' only if pictureChanged is true
+          if (pictureChanged && listingUrl != null) {
+            updateData['photo_url'] = listingUrl;
+          }
+
           final response = await supabase
               .from('listings_table')
-              .update({
-                'photo_url': listingUrl ?? "",
-                'street_address': addressController.text,
-                'location': locationController.text,
-                'asking_price': int.tryParse(priceController.text) ?? 0,
-                'bed_count': bedCount,
-                'bath_count': bathCount,
-                'amenities': amenitiesController.text,
-                'pets_allowed': petsAllowed,
-                'smoking_allowed': smokingAllowed,
-                'availability': availabilityController.text,
-                'listing_bio': bioController.text,
-                'is_private': isPrivate,
-              })
+              .update(updateData)
               .eq('listing_id', profileID as Object)
               .select();
+
           print("✅ Updated listing: $response");
         } else {
           print("⚠️ No existing listing found for userId: $profileID");
@@ -540,7 +559,7 @@ Widget _buildProfileImage({
           ? MemoryImage(profilePictureBytes) // Show selected image
           : (profilePictureURL != null && profilePictureURL.isNotEmpty
               ? NetworkImage(profilePictureURL) // Show stored image
-              : AssetImage('assets/default_profile.png') as ImageProvider),
+              : AssetImage('assets/placeholder.png') as ImageProvider),
     );
   } else {
     return CircleAvatar(
@@ -549,7 +568,7 @@ Widget _buildProfileImage({
           ? FileImage(profilePictureFile) // Show selected image
           : (profilePictureURL != null && profilePictureURL.isNotEmpty
               ? NetworkImage(profilePictureURL) // Show stored image
-              : AssetImage('assets/default_profile.png') as ImageProvider),
+              : AssetImage('assets/placeholder.png') as ImageProvider),
     );
   }
 }

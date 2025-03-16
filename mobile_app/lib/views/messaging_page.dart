@@ -112,6 +112,7 @@ class ChatScreen extends StatelessWidget {
                       final profileType = newValue['userType'];
                       userProvider.setSelectedProfile(newValue,
                           profileType == 'Renter' ? "Renter" : "Landlord");
+                      userProvider.fetchProfiles();
                     }
                   },
                   items: [
