@@ -22,71 +22,13 @@ class MessengerApp extends StatelessWidget {
 
 // Chat List Screen
 class ChatListScreen extends StatelessWidget {
-  final List<Map<String, String>> contacts = [
-    {"name": "Alice Johnson", "lastMessage": "Hey, how's it going?"},
-    {"name": "Bob Smith", "lastMessage": "Can you send me the files?"},
-    {"name": "Charlie Brown", "lastMessage": "Let's meet up tomorrow."},
-    {"name": "Diana Prince", "lastMessage": "Thanks for the update!"},
-    {"name": "Ethan Hunt", "lastMessage": "Mission completed!"},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-          title: const Text("Chats"),
-          centerTitle: true,
-          backgroundColor: Colors.teal),
-      body: ListView.builder(
-        itemCount: contacts.length,
-        itemBuilder: (context, index) {
-          final contact = contacts[index];
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.teal,
-              child: Text(
-                contact['name']![0], // Display the first letter of the name
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            title: Text(contact['name']!),
-            subtitle: Text(contact['lastMessage']!),
-            onTap: () {
-              // Navigate to the chat screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      ChatScreen(contactName: contact['name']!),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-// Chat Screen
-class ChatScreen extends StatelessWidget {
-  final String contactName;
-
-  ChatScreen({required this.contactName});
-
-  final List<Map<String, String>> messages = [
-    {"from": "me", "message": "Hey! How are you?"},
-    {"from": "contact", "message": "I'm good, how about you?"},
-    {"from": "me", "message": "Doing great, just working on a project."},
-    {"from": "contact", "message": "Nice! Let me know if you need help."},
-  ];
-
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Messaging Page"),
+        title: const Text("Contact Page"),
         centerTitle: true,
         backgroundColor: Colors.teal,
         actions: [
@@ -148,6 +90,105 @@ class ChatScreen extends StatelessWidget {
           ),
         ],
       ),
+      body: FutureBuilder<List<Map<String, String>>>(
+        future: userProvider.fetchContacts(), // Fetch contacts dynamically
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No contacts available.'));
+          }
+
+          final contacts = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: contacts.length,
+            itemBuilder: (context, index) {
+              final contact = contacts[index];
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.teal,
+                  backgroundImage: contact['picture'] != null &&
+                          contact['picture']!.isNotEmpty
+                      ? NetworkImage(contact['picture']!) // Use the image URL
+                      : null, // If no image is available, fall back to initials
+                  child:
+                      contact['picture'] == null || contact['picture']!.isEmpty
+                          ? Text(
+                              contact['name']![
+                                  0], // Display the first letter of the name
+                              style: TextStyle(color: Colors.white),
+                            )
+                          : null, // No text if there's an image
+                ),
+                title: Text(contact['name']!),
+                subtitle: Text(contact['lastMessage']!),
+                onTap: () {
+                  int? matchedProfileId =
+                      int.tryParse(contact['matchedProfileId'] ?? '') ?? 0;
+                  if (matchedProfileId == 0) {
+                    // Handle missing or incorrect ID
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Invalid matched profile ID.")),
+                    );
+                    return;
+                  }
+
+                  // Navigate to ChatScreen with correct profile ID
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                        matchedProfileId: matchedProfileId,
+                        contactName: contact['name']!,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Chat Screen
+class ChatScreen extends StatefulWidget {
+  final int matchedProfileId;
+  final String contactName;
+
+  ChatScreen({required this.matchedProfileId, required this.contactName});
+
+  @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final TextEditingController messageController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    userProvider
+        .fetchMessages(widget.matchedProfileId); // Fetch full chat history
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final messages = userProvider.getMessages(widget.matchedProfileId);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Chat with ${widget.contactName}'),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+      ),
       body: Column(
         children: [
           // Messages List
@@ -161,18 +202,16 @@ class ChatScreen extends StatelessWidget {
                   alignment:
                       isMe ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                    padding: const EdgeInsets.all(12),
+                    margin: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isMe ? Colors.teal : Colors.grey[300],
+                      color: isMe ? Colors.blue : Colors.grey[300],
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       message['message']!,
-                      style: TextStyle(
-                        color: isMe ? Colors.white : Colors.black87,
-                      ),
+                      style:
+                          TextStyle(color: isMe ? Colors.white : Colors.black),
                     ),
                   ),
                 );
@@ -186,21 +225,19 @@ class ChatScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
+                    controller: messageController,
+                    decoration: InputDecoration(hintText: 'Type a message...'),
                   ),
                 ),
-                const SizedBox(width: 8),
-                FloatingActionButton(
+                IconButton(
+                  icon: Icon(Icons.send),
                   onPressed: () {
-                    // Add send message functionality here
+                    final text = messageController.text.trim();
+                    if (text.isNotEmpty) {
+                      userProvider.sendMessage(widget.matchedProfileId, text);
+                      messageController.clear();
+                    }
                   },
-                  child: const Icon(Icons.send),
-                  mini: true,
                 ),
               ],
             ),

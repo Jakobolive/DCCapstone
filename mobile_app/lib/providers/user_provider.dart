@@ -5,6 +5,7 @@ class UserProvider extends ChangeNotifier {
   int? _userId;
   String? _userType; // "Renter" or "Landlord"
   Map<String, dynamic>? _selectedProfile;
+  int? _profileId;
   List<Map<String, dynamic>> _renterProfiles = [];
   List<Map<String, dynamic>> _landlordProfiles = [];
   List<Map<String, dynamic>> _profiles =
@@ -18,6 +19,9 @@ class UserProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get profiles =>
       _profiles; // Expose listings or preferences
   int _currentProfileIndex = 0; // Index to track the current profile
+
+  Map<String, List<Map<String, String>>> chatMessages =
+      {}; // Stores messages per chat
 
   void setUserId(int id) {
     _userId = id;
@@ -118,14 +122,18 @@ class UserProvider extends ChangeNotifier {
       final renterListings = await supabase
           .from('listings_table')
           .select('*')
-          .neq('user_id', _userId!);
+          .neq('user_id', _userId!)
+          .eq('is_private', false);
+      ;
 
       allProfiles = List<Map<String, dynamic>>.from(renterListings);
     } else if (_userType == "Landlord") {
       final landlordPreferences = await supabase
           .from('preferences_table')
           .select('*')
-          .neq('user_id', _userId!);
+          .neq('user_id', _userId!)
+          .eq('is_pref_private', false);
+      ;
 
       allProfiles = List<Map<String, dynamic>>.from(landlordPreferences);
     }
@@ -141,27 +149,46 @@ class UserProvider extends ChangeNotifier {
           .select('preference_id, listing_id')
           .or('preference_id.eq.$currentProfileId,listing_id.eq.$currentProfileId');
 
-      // Create a set of matched profile IDs to filter out
-      Set<int> matchedIds = matchedProfiles
-          .map<int>((match) => _userType == 'Renter'
-              ? match['listing_id'] as int
-              : match['preference_id'] as int)
-          .toSet();
+      // Separate matched profiles into two sets
+      Set<int> pendingMatchIds = {}; // Profiles with pending status
+      Set<int> matchedIds = {}; // Profiles already accepted or declined
 
-      // Filter out profiles that are already matched
-      _profiles = allProfiles.where((profile) {
+      // Iterate through matched profiles and check the status.
+      for (var match in matchedProfiles) {
+        int profileId = (_userType == 'Renter')
+            ? match['listing_id'] as int
+            : match['preference_id'] as int;
+
+        if (match['match_status'] == 'pending') {
+          pendingMatchIds.add(profileId);
+        } else {
+          matchedIds.add(profileId);
+        }
+      }
+
+      // Separate profiles into two lists: pending and unmatched
+      List<Map<String, dynamic>> pendingProfiles = [];
+      List<Map<String, dynamic>> unmatchedProfiles = [];
+
+      // Iterate through all profiles and check if they are in the pending or unmatched status.
+      for (var profile in allProfiles) {
         int profileId = (_userType == 'Renter')
             ? profile['listing_id'] as int
             : profile['preference_id'] as int;
-        return !matchedIds.contains(profileId);
-      }).toList();
+
+        if (pendingMatchIds.contains(profileId)) {
+          pendingProfiles.add(profile);
+        } else if (!matchedIds.contains(profileId)) {
+          unmatchedProfiles.add(profile);
+        }
+      }
+      // Prioritize pending profiles
+      _profiles = [...pendingProfiles, ...unmatchedProfiles];
     } else {
       _profiles = allProfiles; // No filtering if no selected profile
     }
-
     // Reset the index if we have profiles to display
     _currentProfileIndex = 0;
-
     print("Profiles fetched: $_profiles");
     notifyListeners();
   }
@@ -169,6 +196,8 @@ class UserProvider extends ChangeNotifier {
   void setSelectedProfile(Map<String, dynamic> profile, String type) {
     _selectedProfile = profile;
     _userType = type;
+    _profileId =
+        profile['listing_id'] as int? ?? profile['preference_id'] as int?;
     _currentProfileIndex = 0;
     fetchListingsOrPreferences(); // Fetch listings or preferences after selecting a profile
     notifyListeners();
@@ -241,5 +270,131 @@ class UserProvider extends ChangeNotifier {
     } catch (error) {
       print('Error disliking profile: $error');
     }
+  }
+
+  // Method to fetch contacts.(matches)
+  Future<List<Map<String, String>>> fetchContacts() async {
+    if (_userId == null || _userType == null) return [];
+
+    try {
+      int? currentProfileId = (_userType == 'Renter')
+          ? _selectedProfile!['preference_id'] as int?
+          : _selectedProfile!['listing_id'] as int?;
+
+      final matchedProfiles = await supabase
+          .from('match_table')
+          .select('preference_id, listing_id')
+          .or('preference_id.eq.$currentProfileId,listing_id.eq.$currentProfileId');
+
+      List<Map<String, String>> contacts = [];
+
+      for (var match in matchedProfiles) {
+        int matchedProfileId = _userType == 'Renter'
+            ? match['listing_id'] as int
+            : match['preference_id'] as int;
+
+        final contactData = await supabase
+            .from(
+                _userType == 'Renter' ? 'listings_table' : 'preferences_table')
+            .select('*')
+            .eq(_userType == 'Renter' ? 'listing_id' : 'preference_id',
+                matchedProfileId)
+            .single();
+
+        final lastMessageData = await supabase
+            .from('messages_table')
+            .select('message')
+            .or('sender_renter_id.eq.$_profileId,sender_landlord_id.eq.$_profileId,'
+                'receiver_renter_id.eq.$_profileId,receiver_landlord_id.eq.$_profileId')
+            .or('sender_renter_id.eq.$matchedProfileId,sender_landlord_id.eq.$matchedProfileId,'
+                'receiver_renter_id.eq.$matchedProfileId,receiver_landlord_id.eq.$matchedProfileId')
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        String lastMessage = lastMessageData != null
+            ? lastMessageData['message'] as String
+            : "No messages yet"; // Fallback if no message is found
+
+        if (lastMessageData == null) {
+          print("No message found between $_userId and $matchedProfileId");
+        } else {
+          print("Last message: ${lastMessageData['message']}");
+        }
+
+        contacts.add({
+          'name': _userType == 'Renter'
+              ? contactData['street_address']
+              : contactData['preferred_name'],
+          'picture': contactData['photo_url'],
+          'lastMessage': lastMessage,
+          'matchedProfileId': matchedProfileId.toString(),
+        });
+      }
+
+      return contacts;
+    } catch (e) {
+      print("Error fetching contacts: $e");
+      return [];
+    }
+  }
+
+  // Fetch all messages for a matched contact
+  Future<void> fetchMessages(int matchedProfileId) async {
+    if (_profileId == null) return;
+
+    try {
+      final messages = await supabase
+          .from('messages_table')
+          .select('message, sender_renter_id, sender_landlord_id, created_at')
+          .or('sender_renter_id.eq.$_profileId,sender_landlord_id.eq.$_profileId,'
+              'receiver_renter_id.eq.$_profileId,receiver_landlord_id.eq.$_profileId')
+          .or('sender_renter_id.eq.$matchedProfileId,sender_landlord_id.eq.$matchedProfileId,'
+              'receiver_renter_id.eq.$matchedProfileId,receiver_landlord_id.eq.$matchedProfileId')
+          .order('created_at', ascending: true);
+
+      List<Map<String, String>> formattedMessages = messages.map((msg) {
+        bool isMe = msg['sender_renter_id'] == _profileId ||
+            msg['sender_landlord_id'] == _profileId;
+        return {
+          "from": isMe ? "me" : "them",
+          "message": msg['message'] as String,
+        };
+      }).toList();
+
+      chatMessages[matchedProfileId.toString()] = formattedMessages;
+      notifyListeners();
+    } catch (e) {
+      print("Error fetching messages: $e");
+    }
+  }
+
+  // Send a message and store it in Supabase
+  Future<void> sendMessage(int matchedProfileId, String message) async {
+    if (_profileId == null) return;
+
+    try {
+      await supabase.from('messages_table').insert({
+        'sender_renter_id': userType == "Renter" ? _profileId : null,
+        'sender_landlord_id': userType == "Landlord" ? _profileId : null,
+        'receiver_renter_id': userType == "Renter" ? null : matchedProfileId,
+        'receiver_landlord_id':
+            userType == "Landlord" ? null : matchedProfileId,
+        'message': message,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      chatMessages[matchedProfileId.toString()] ??= [];
+      chatMessages[matchedProfileId.toString()]!
+          .add({"from": "me", "message": message});
+      notifyListeners();
+    } catch (e) {
+      print("Error sending message: $e");
+    }
+  }
+
+  // Get stored messages for a contact
+  List<Map<String, String>> getMessages(int matchedProfileId) {
+    return chatMessages[matchedProfileId.toString()] ?? [];
   }
 }

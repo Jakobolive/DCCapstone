@@ -3,13 +3,10 @@ import 'dart:typed_data';
 import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
-import '../providers/user_provider.dart';
 
 class BuildProfilePage extends StatefulWidget {
   @override
@@ -21,7 +18,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   String? userType; // Determines if the user is a renter or landlord
   final ImagePicker _picker = ImagePicker();
   File? pickedFile;
-  final _formKey = GlobalKey<FormState>();
 
   // Common fields
   final TextEditingController locationController = TextEditingController();
@@ -144,17 +140,19 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       return null;
     }
 
+    final storage = supabase.storage.from(storageBucket);
+
     try {
       print("🚨 Uploading file: $fileName to $storageBucket");
 
-      final response = await supabase.storage.from(storageBucket).uploadBinary(
-            'pictures/$fileName', // Path in Supabase Storage
-            fileBytes, // Upload as raw Uint8List
-            fileOptions: const FileOptions(contentType: 'image/jpeg'),
-          );
+      final response = await storage.uploadBinary(
+        'pictures/$fileName', // Path in Supabase Storage
+        fileBytes,
+        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+      );
 
       print("✅ Upload successful: $response");
-      return response;
+      return storage.getPublicUrl('pictures/$fileName');
     } catch (e) {
       print("❌ Exception occurred during file upload: $e");
       return null;
@@ -170,23 +168,24 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       // Generate timestamp
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       // Profile picture upload
+      // Upload new profile picture
       if (profilePictureBytes != null) {
         String profileFileName = 'profile_${userId}_$timestamp.jpg';
         profileUrl = await uploadFile(
             profilePictureBytes, profileFileName, 'profile_images');
         print("✅ Profile picture uploaded successfully: $profileUrl");
       } else {
-        print('No profile picture provided.');
+        print('No new profile picture provided.');
       }
 
-      // Listing picture upload
+      // Upload new listing picture
       if (listingPictureBytes != null) {
         String listingFileName = 'listing_${userId}_$timestamp.jpg';
         listingUrl = await uploadFile(
             listingPictureBytes, listingFileName, 'listing_images');
         print("✅ Listing picture uploaded successfully: $listingUrl");
       } else {
-        print('No listing picture provided.');
+        print('No new listing picture provided.');
       }
 
       // Determine the table depending on user type and insert data

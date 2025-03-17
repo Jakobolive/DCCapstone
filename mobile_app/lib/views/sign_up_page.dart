@@ -92,7 +92,6 @@ class SignUpPage extends StatelessWidget {
       }
       // Extract user_id from response
       final int userId = response['user_id'];
-
       print("✅ Sign-up successful! New User ID: $userId");
 
       // Save userId in Provider for session tracking
