@@ -1,5 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 class BuildProfilePage extends StatefulWidget {
   @override
@@ -15,6 +17,8 @@ class BuildProfilePage extends StatefulWidget {
 
 class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
+  List<String> citySuggestions = [];
+  Timer? _debounce;
   String? userType; // Determines if the user is a renter or landlord
   final ImagePicker _picker = ImagePicker();
   File? pickedFile;
@@ -88,6 +92,60 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         ),
       ),
     );
+  }
+
+  // Function to fetch city suggestions from OpenCage API
+  Future<void> fetchCitySuggestions(String query) async {
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel(); // Cancel the previous debounce timer
+    }
+
+    // Only call API if the user has typed more than 2 characters
+    if (query.length > 2) {
+      _debounce = Timer(const Duration(milliseconds: 500), () async {
+        try {
+          final response = await http.get(
+            Uri.parse(
+                'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(query)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1'),
+          );
+
+          if (response.statusCode == 200) {
+            // Parse and handle the successful response here
+            final data = jsonDecode(response.body);
+
+            // Extract the results (city, province/state, country, postal code)
+            List<String> suggestions = [];
+            for (var result in data['results']) {
+              String? city = result['components']['_normalized_city'];
+              String? state = result['components']['state'];
+              String? country = result['components']['country'];
+
+              // Construct the suggestion string based on available data
+              String suggestion = '';
+              if (city != null) suggestion += '$city, ';
+              if (state != null) suggestion += '$state, ';
+              if (country != null) suggestion += '$country';
+
+              if (suggestion.isNotEmpty) {
+                suggestions.add(suggestion);
+              }
+            }
+            // Update the UI with the suggestions
+            setState(() {
+              citySuggestions = suggestions;
+            });
+          } else {
+            // Handle error response from the API
+            print('Failed to load city suggestions: ${response.statusCode}');
+          }
+        } catch (e) {
+          print('Error fetching city suggestions: $e');
+        }
+      });
+    } else {
+      // Optionally clear previous suggestions if query length is too short
+      print('Please enter more than 2 characters to get city suggestions');
+    }
   }
 
   // Function to pick the image the user selects.
@@ -324,7 +382,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         ),
         SizedBox(height: 20),
         _buildTextField("Preferred Name", nameController, Icons.person),
-        _buildTextField("Location", locationController, Icons.location_on),
+        _buildTextFieldWithSuggestions("Desired City"),
+        //_buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Budget (\$)", budgetController, Icons.attach_money),
         _buildCounter(
@@ -384,7 +443,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           child: Text(userType == null ? "Select User Type" : "$userType"),
         ),
         SizedBox(height: 20),
-        _buildTextField("Location", locationController, Icons.location_on),
+        _buildTextFieldWithSuggestions("Rental City"),
+        //_buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Address", addressController, Icons.home),
         _buildTextField("Asking Price (\$)", priceController, Icons.money),
@@ -442,6 +502,54 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
+  // Modified TextField with suggestions
+  Widget _buildTextFieldWithSuggestions(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: locationController,
+          decoration: InputDecoration(
+            labelText: label,
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+            prefixIcon: const Icon(Icons.location_city),
+          ),
+          onChanged: (value) {
+            if (value.isNotEmpty) {
+              fetchCitySuggestions(
+                  value); // Fetch suggestions when text changes
+            } else {
+              setState(() {
+                citySuggestions = []; // Clear suggestions when text is empty
+              });
+            }
+          },
+        ),
+        SizedBox(height: 16),
+        if (citySuggestions.isNotEmpty)
+          Container(
+            height: 200, // Set a height for the suggestions list
+            child: ListView.builder(
+              itemCount: citySuggestions.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(citySuggestions[index]),
+                  onTap: () {
+                    locationController.text =
+                        citySuggestions[index]; // Set selected city
+                    setState(() {
+                      citySuggestions = []; // Hide suggestions after selection
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildCounter(String label, int value, Function(int) onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -467,10 +575,4 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       onChanged: (bool? newValue) => onChanged(newValue ?? false),
     );
   }
-}
-
-extension on String {
-  get error => null;
-
-  get data => null;
 }
