@@ -159,6 +159,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  Future<Map<String, double>?> getLatLong(String location) async {
+    final url = Uri.parse(
+        'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(location)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status']['code'] == 200 && data['results'].isNotEmpty) {
+        final location = data['results'][0]['geometry'];
+        return {'latitude': location['lat'], 'longitude': location['lng']};
+      }
+    }
+    return null;
+  }
+
   // Function to pick the image the user selects.
   Future<void> _pickListingPicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -311,6 +327,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
         print('No new listing picture provided.');
       }
 
+      // Fetch Latitude & Longitude
+      String locationInput = locationController.text;
+      Map<String, double>? coordinates = await getLatLong(locationInput);
+      double latitude = coordinates?['latitude'] ?? 0.0;
+      double longitude = coordinates?['longitude'] ?? 0.0;
+
       print("✅ Retrieved profileId: $profileID");
 
       // Determine table and update accordingly
@@ -328,6 +350,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'preferred_name': nameController.text,
             'profile_bio': bioController.text,
             'location': locationController.text,
+            'latitude': latitude,
+            'longitude': longitude,
             'max_budget': int.tryParse(budgetController.text) ?? 0,
             'pets_allowed': petsAllowed,
             'smoking_allowed': smokingAllowed,
@@ -365,6 +389,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           final updateData = {
             'street_address': addressController.text,
             'location': locationController.text,
+            'latitude': latitude,
+            'longitude': longitude,
             'asking_price': int.tryParse(priceController.text) ?? 0,
             'bed_count': bedCount,
             'bath_count': bathCount,

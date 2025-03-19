@@ -145,37 +145,109 @@ class _SwipePageState extends State<SwipePage> {
                                   children: [
                                     if (isRenter) ...[
                                       // Assuming it is a renter profile, display listings.
-                                      Text(
-                                        data['street_address'] ?? "No title",
-                                        style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      Text(
-                                        data['asking_price']?.toString() ??
-                                            "No price",
-                                        style: const TextStyle(
-                                            fontSize: 16, color: Colors.grey),
-                                      ),
-                                      Text(
-                                        data['listing_bio'] ??
-                                            "No Bio Available",
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment
+                                            .center, // Centers all child widgets horizontally
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .center, // Centers row content
+                                            children: [
+                                              Text(
+                                                data['street_address'] ??
+                                                    "No Address Available",
+                                                style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              const SizedBox(
+                                                  width:
+                                                      8), // Space between the name and score
+                                              Text(
+                                                '(Landlord Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})',
+                                                style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.green),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            data['location'] ??
+                                                "No Location Available",
+                                            style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            data['asking_price']?.toString() ??
+                                                "No price",
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey),
+                                          ),
+                                          Text(
+                                            data['listing_bio'] ??
+                                                "No Bio Available",
+                                            style:
+                                                const TextStyle(fontSize: 16),
+                                          ),
+                                        ],
+                                      )
                                     ]
                                     // For Renters, show preference-specific information
                                     else if (!isRenter) ...[
-                                      Text(
-                                        data['preferred_name'] ??
-                                            "No preferred name",
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                      Text(
-                                        data['profile_bo'] ??
-                                            "No Bio Available",
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                    ],
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment
+                                            .center, // Centers all child widgets horizontally
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .center, // Centers row content
+                                            children: [
+                                              Text(
+                                                data['preferred_name'] ??
+                                                    "No Name Available",
+                                                style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              const SizedBox(
+                                                  width:
+                                                      8), // Add some space between the name and score
+                                              Text(
+                                                '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})', // Format the compatibility score
+                                                style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.green),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            data['location'] ??
+                                                "No Location Available",
+                                            style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            data['max_budget']?.toString() ??
+                                                "No Budget Available",
+                                            style:
+                                                const TextStyle(fontSize: 16),
+                                          ),
+                                          Text(
+                                            data['profile_bio'] ??
+                                                "No Bio Available",
+                                            style:
+                                                const TextStyle(fontSize: 16),
+                                          ),
+                                        ],
+                                      )
+                                    ]
                                   ],
                                 ),
                               ),

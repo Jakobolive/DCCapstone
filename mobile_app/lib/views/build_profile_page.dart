@@ -113,7 +113,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
             // Parse and handle the successful response here
             final data = jsonDecode(response.body);
 
-            // Extract the results (city, province/state, country, postal code)
+            // Extract the results (city, province/state, country)
             List<String> suggestions = [];
             for (var result in data['results']) {
               String? city = result['components']['_normalized_city'];
@@ -146,6 +146,22 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       // Optionally clear previous suggestions if query length is too short
       print('Please enter more than 2 characters to get city suggestions');
     }
+  }
+
+  Future<Map<String, double>?> getLatLong(String location) async {
+    final url = Uri.parse(
+        'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(location)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status']['code'] == 200 && data['results'].isNotEmpty) {
+        final location = data['results'][0]['geometry'];
+        return {'latitude': location['lat'], 'longitude': location['lng']};
+      }
+    }
+    return null;
   }
 
   // Function to pick the image the user selects.
@@ -246,6 +262,12 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         print('No new listing picture provided.');
       }
 
+      // Fetch Latitude & Longitude
+      String locationInput = locationController.text;
+      Map<String, double>? coordinates = await getLatLong(locationInput);
+      double latitude = coordinates?['latitude'] ?? 0.0;
+      double longitude = coordinates?['longitude'] ?? 0.0;
+
       // Determine the table depending on user type and insert data
       if (userType == "Renter") {
         final response = await supabase.from('preferences_table').insert({
@@ -258,6 +280,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           'location': locationController.text.isNotEmpty
               ? locationController.text
               : "Unknown",
+          'latitude': latitude,
+          'longitude': longitude,
           'max_budget': int.tryParse(budgetController.text) ??
               0, // Default to 0 if not parsable
           'pets_allowed': petsAllowed ?? false, // Use default value if null
@@ -280,6 +304,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           'location': locationController.text.isNotEmpty
               ? locationController.text
               : "Unknown",
+          'latitude': latitude,
+          'longitude': longitude,
           'asking_price': int.tryParse(priceController.text) ??
               0, // Default to 0 if not parsable
           'bed_count': bedCount ?? 0, // Default to 0 if null

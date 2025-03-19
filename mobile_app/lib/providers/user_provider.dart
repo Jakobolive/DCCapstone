@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:capstone_app/main.dart';
 import 'package:flutter/material.dart';
 
@@ -108,6 +109,23 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+    const radius = 6371; // Radius of Earth in kilometers
+    final dLat = _degToRad(lat2 - lat1);
+    final dLon = _degToRad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degToRad(lat1)) *
+            cos(_degToRad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return radius * c; // Distance in kilometers
+  }
+
+  double _degToRad(double deg) {
+    return deg * (pi / 180);
+  }
+
   void fetchListingsOrPreferences() async {
     print("User ID before query: $_userId");
 
@@ -116,16 +134,23 @@ class UserProvider extends ChangeNotifier {
       return; // Handle the null case or exit early
     }
 
-    List<Map<String, dynamic>> allProfiles = [];
+    // Step 1: Fetch the current user's latitude & longitude from their profile
+    double? userLat = _selectedProfile?['latitude'];
+    double? userLng = _selectedProfile?['longitude'];
 
+    if (userLat == null || userLng == null) {
+      print("User latitude/longitude is not available.");
+      return;
+    }
+
+    // Step 2: Fetch profiles based on the user type (Renter or Landlord)
+    List<Map<String, dynamic>> allProfiles = [];
     if (_userType == "Renter") {
       final renterListings = await supabase
           .from('listings_table')
           .select('*')
           .neq('user_id', _userId!)
           .eq('is_private', false);
-      ;
-
       allProfiles = List<Map<String, dynamic>>.from(renterListings);
     } else if (_userType == "Landlord") {
       final landlordPreferences = await supabase
@@ -133,32 +158,47 @@ class UserProvider extends ChangeNotifier {
           .select('*')
           .neq('user_id', _userId!)
           .eq('is_pref_private', false);
-      ;
-
       allProfiles = List<Map<String, dynamic>>.from(landlordPreferences);
     }
 
-    // Fetch matches related to the selected profile
+    // Step 3: Compute distances for each profile
+    List<Map<String, dynamic>> profilesWithDistance = [];
+    for (var profile in allProfiles) {
+      double? profileLat = profile['latitude'];
+      double? profileLng = profile['longitude'];
+
+      if (profileLat != null && profileLng != null) {
+        double distance =
+            haversineDistance(userLat, userLng, profileLat, profileLng);
+        profile['distance'] = distance;
+        profilesWithDistance.add(profile);
+      }
+    }
+
+    // Step 4: Sort the profiles by distance (ascending)
+    profilesWithDistance.sort(
+        (a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+
+    // Step 5: Fetch matches related to the selected profile
+    List<Map<String, dynamic>> matchedProfiles = [];
     if (_selectedProfile != null) {
       int? currentProfileId = (_userType == 'Renter')
           ? _selectedProfile!['preference_id'] as int?
           : _selectedProfile!['listing_id'] as int?;
 
-      final matchedProfiles = await supabase
+      final matches = await supabase
           .from('match_table')
-          .select('preference_id, listing_id')
+          .select('preference_id, listing_id, match_status')
           .or('preference_id.eq.$currentProfileId,listing_id.eq.$currentProfileId');
 
-      // Separate matched profiles into two sets
-      Set<int> pendingMatchIds = {}; // Profiles with pending status
-      Set<int> matchedIds = {}; // Profiles already accepted or declined
+      // Step 6: Separate matched profiles into pending and accepted
+      Set<int> pendingMatchIds = {};
+      Set<int> matchedIds = {};
 
-      // Iterate through matched profiles and check the status.
-      for (var match in matchedProfiles) {
+      for (var match in matches) {
         int profileId = (_userType == 'Renter')
             ? match['listing_id'] as int
             : match['preference_id'] as int;
-
         if (match['match_status'] == 'pending') {
           pendingMatchIds.add(profileId);
         } else {
@@ -166,29 +206,73 @@ class UserProvider extends ChangeNotifier {
         }
       }
 
-      // Separate profiles into two lists: pending and unmatched
+      // Step 7: Filter profiles into pending, unmatched, and matched categories
       List<Map<String, dynamic>> pendingProfiles = [];
       List<Map<String, dynamic>> unmatchedProfiles = [];
 
-      // Iterate through all profiles and check if they are in the pending or unmatched status.
-      for (var profile in allProfiles) {
+      for (var profile in profilesWithDistance) {
         int profileId = (_userType == 'Renter')
             ? profile['listing_id'] as int
             : profile['preference_id'] as int;
-
         if (pendingMatchIds.contains(profileId)) {
           pendingProfiles.add(profile);
         } else if (!matchedIds.contains(profileId)) {
           unmatchedProfiles.add(profile);
         }
       }
+
       // Prioritize pending profiles
-      _profiles = [...pendingProfiles, ...unmatchedProfiles];
+      matchedProfiles = [...pendingProfiles, ...unmatchedProfiles];
     } else {
-      _profiles = allProfiles; // No filtering if no selected profile
+      matchedProfiles =
+          profilesWithDistance; // No filtering if no selected profile
     }
-    // Reset the index if we have profiles to display
-    _currentProfileIndex = 0;
+
+    // Step 8: Compute compatibility scores for all profiles before sorting
+    for (var profile in matchedProfiles) {
+      double compatibilityScore = 0.0;
+
+      if (_selectedProfile != null) {
+        if (profile['bed_count'] == _selectedProfile!['bed_count']) {
+          compatibilityScore += 1;
+        }
+        if (_userType == 'Renter' &&
+            profile['asking_price'] <= _selectedProfile!['max_budget']) {
+          compatibilityScore += 1;
+        }
+        if (_userType == 'Landlord' &&
+            profile['max_budget'] >= _selectedProfile!['asking_price']) {
+          compatibilityScore += 1;
+        }
+        if (profile['bath_count'] == _selectedProfile!['bath_count']) {
+          compatibilityScore += 1;
+        }
+        if (profile['pets_allowed'] == _selectedProfile!['pets_allowed']) {
+          compatibilityScore += 1;
+        }
+        if (profile['smoking_allowed'] ==
+            _selectedProfile!['smoking_allowed']) {
+          compatibilityScore += 1;
+        }
+      }
+
+      profile['compatibilityScore'] = compatibilityScore;
+    }
+
+// Step 9: Sort profiles based on compatibilityScore (descending) and distance (ascending)
+    matchedProfiles.sort((a, b) {
+      int scoreComparison = (b['compatibilityScore'] as double)
+          .compareTo(a['compatibilityScore'] as double);
+      if (scoreComparison != 0)
+        return scoreComparison; // Prioritize higher compatibility score
+
+      return (a['distance'] as double)
+          .compareTo(b['distance'] as double); // Then sort by distance
+    });
+
+    // Step 10: Update the profiles list
+    _profiles = matchedProfiles;
+    _currentProfileIndex = 0; // Reset the index if we have profiles to display
     print("Profiles fetched: $_profiles");
     notifyListeners();
   }
