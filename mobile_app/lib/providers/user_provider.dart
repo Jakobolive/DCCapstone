@@ -199,7 +199,12 @@ class UserProvider extends ChangeNotifier {
         int profileId = (_userType == 'Renter')
             ? match['listing_id'] as int
             : match['preference_id'] as int;
-        if (match['match_status'] == 'pending') {
+
+        // Check if the match is pending depending on userType
+        String pendingStatus =
+            (_userType == 'Renter') ? 'pendingLandlord' : 'pendingTenant';
+
+        if (match['match_status'] == pendingStatus) {
           pendingMatchIds.add(profileId);
         } else {
           matchedIds.add(profileId);
@@ -317,12 +322,15 @@ class UserProvider extends ChangeNotifier {
           'listing_id': currentUserId as Object,
         });
       } else {
+        // Creating a match status
+        String matchStatus =
+            userType == "Renter" ? "pendingTenant" : "pendingLandlord";
         // Insert new "Pending" match
         await supabase.from('match_table').insert({
           'preference_id': currentUserId,
           'listing_id': likedUserId,
           'match_notes': '',
-          'match_status': 'pending',
+          'match_status': matchStatus,
         });
       }
       notifyListeners();
