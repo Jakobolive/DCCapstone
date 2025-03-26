@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:capstone_app/main.dart';
-import 'package:capstone_app/providers/user_provider.dart'; // Ensure you import the provider
+import 'package:capstone_app/providers/user_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,6 +16,7 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
+  // Variables.
   final supabase = Supabase.instance.client;
   List<String> citySuggestions = [];
   Timer? _debounce;
@@ -26,12 +27,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   File? listingPicture;
   String? userType;
   int? profileID;
-
-  // Common fields
+  // Common fields.
   final TextEditingController locationController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
-
-  // Renter-specific fields
+  // Renter-specific fields.
   final TextEditingController nameController = TextEditingController();
   final TextEditingController budgetController = TextEditingController();
   bool petsAllowed = false;
@@ -40,43 +39,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
   int bedCount = 1;
   int bathCount = 1;
   final TextEditingController amenitiesController = TextEditingController();
-
-  // Landlord-specific fields
+  // Landlord-specific fields.
   final TextEditingController addressController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   bool petsAllowedLandlord = false;
   bool smokingAllowed = false;
   bool isPrivate = false;
   final TextEditingController availabilityController = TextEditingController();
-
-  // Image related fields
-  File? listingPictureFile; // For mobile (Android/iOS)
-  Uint8List? listingPictureBytes; // For web
-
-  File? profilePictureFile; // For mobile (Android/iOS)
-  Uint8List? profilePictureBytes; // For web
-
+  // Image related fields.
+  File? listingPictureFile; // For mobile. (Android/iOS)
+  Uint8List? listingPictureBytes; // For web.
+  File? profilePictureFile; // For mobile. (Android/iOS)
+  Uint8List? profilePictureBytes; // For web.
   // Bool to determine picture deletion.
   bool pictureChanged = false;
-
   @override
   void initState() {
     super.initState();
     _loadProfileData();
   }
 
+  // Load fields with existing profile data.
   void _loadProfileData() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final profileData = userProvider.selectedProfile;
-
     if (profileData != null) {
       setState(() {
-        userType = userProvider.userType; // Directly get the user type
-
-        // Populate common fields
+        userType = userProvider.userType; // Directly get the user type.
+        // Populate common fields.
         locationController.text = profileData['location'] ?? '';
         amenitiesController.text = profileData['amenities'] ?? '';
-
+        // Renter-specific fields.
         if (userType == 'Renter') {
           profilePictureURL = profileData['photo_url'] ?? '';
           nameController.text = profileData['preferred_name']?.toString() ?? '';
@@ -88,7 +81,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
           bathCount = profileData['bath_count'] ?? 1;
           prefPrivate = profileData['is_pref_private'] ?? false;
           profileID = profileData['preference_id'];
-        } else {
+        }
+        // Landlord-specific fields.
+        else {
           listingPictureURL = profileData['photo_url'] ?? '';
           addressController.text = profileData['street_address'] ?? '';
           bioController.text = profileData['listing_bio'] ?? '';
@@ -105,13 +100,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  // Function to fetch city suggestions from OpenCage API
+  // Function to fetch city suggestions from OpenCage API.
   Future<void> fetchCitySuggestions(String query) async {
     if (_debounce?.isActive ?? false) {
-      _debounce!.cancel(); // Cancel the previous debounce timer
+      _debounce!.cancel(); // Cancel the previous debounce timer.
     }
-
-    // Only call API if the user has typed more than 2 characters
+    // Only call API if the user has typed more than 2 characters.
     if (query.length > 2) {
       _debounce = Timer(const Duration(milliseconds: 500), () async {
         try {
@@ -119,34 +113,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
             Uri.parse(
                 'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(query)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1'),
           );
-
           if (response.statusCode == 200) {
-            // Parse and handle the successful response here
+            // Parse and handle the successful response here.
             final data = jsonDecode(response.body);
-
-            // Extract the results (city, province/state, country, postal code)
+            // Extract the results. (city, province/state, country, postal code)
             List<String> suggestions = [];
             for (var result in data['results']) {
               String? city = result['components']['_normalized_city'];
               String? state = result['components']['state'];
               String? country = result['components']['country'];
-
-              // Construct the suggestion string based on available data
+              // Construct the suggestion string based on available data.
               String suggestion = '';
               if (city != null) suggestion += '$city, ';
               if (state != null) suggestion += '$state, ';
               if (country != null) suggestion += '$country';
-
               if (suggestion.isNotEmpty) {
                 suggestions.add(suggestion);
               }
             }
-            // Update the UI with the suggestions
+            // Update the UI with the suggestions.
             setState(() {
               citySuggestions = suggestions;
             });
           } else {
-            // Handle error response from the API
+            // Handle error response from the API.
             print('Failed to load city suggestions: ${response.statusCode}');
           }
         } catch (e) {
@@ -154,17 +144,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
         }
       });
     } else {
-      // Optionally clear previous suggestions if query length is too short
+      // Optionally clear previous suggestions if query length is too short.
       print('Please enter more than 2 characters to get city suggestions');
     }
   }
 
+  // Function to get Lat and Long from city API.
   Future<Map<String, double>?> getLatLong(String location) async {
     final url = Uri.parse(
         'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(location)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1');
-
     final response = await http.get(url);
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['status']['code'] == 200 && data['results'].isNotEmpty) {
@@ -181,23 +170,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
       if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes(); // Convert to Uint8List
+        final bytes = await pickedFile.readAsBytes(); // Convert to Uint8List.
         setState(() {
-          listingPictureBytes = bytes; // Use Uint8List for web
+          listingPictureBytes = bytes; // Use Uint8List for web.
           print("🚨 Listing picture bytes: ${bytes.length}");
-          listingPictureFile = null; // Ensure File is null on web
+          listingPictureFile = null; // Ensure File is null on web.
         });
       } else {
         setState(() {
-          listingPictureFile = File(pickedFile.path); // Use File for mobile
+          listingPictureFile = File(pickedFile.path); // Use File for mobile.
           print("🚨 Listing picture file path: ${pickedFile.path}");
-          listingPictureBytes = null; // Ensure Uint8List is null on mobile
+          listingPictureBytes = null; // Ensure Uint8List is null on mobile.
         });
       }
     }
     pictureChanged = true;
   }
 
+  // Function to pick the image the user selects.
   Future<void> _pickProfilePicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
@@ -220,35 +210,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
     pictureChanged = true;
   }
 
+  // Function to upload new image to bucket.
   Future<String?> uploadFile(Uint8List? fileBytes, String fileName,
       String storageBucket, String? oldFileUrl) async {
     if (fileBytes == null) {
       print("❌ Error: No file bytes provided.");
       return null;
     }
-
     final storage = supabase.storage.from(storageBucket);
-
     try {
       if (oldFileUrl != null && oldFileUrl.isNotEmpty && pictureChanged) {
         Uri uri = Uri.parse(oldFileUrl);
         List<String> segments = uri.pathSegments;
-
-        // Ensure the URL has the right structure: /storage/v1/object/public/<bucket-name>/<file-path>
+        // Ensure the URL has the right structure: /storage/v1/object/public/<bucket-name>/<file-path>.
         if (segments.length > 4) {
           String oldBucket =
-              segments[4]; // Bucket name is the 4th segment (index 4)
-          String oldFilePath = segments
-              .sublist(5)
-              .join('/'); // The file path starts from the 5th segment (index 4)
-
+              segments[4]; // Bucket name is the 4th segment. (index 4)
+          String oldFilePath = segments.sublist(5).join(
+              '/'); // The file path starts from the 5th segment. (index 4)
           print(
               "🚨 Deleting old file from bucket: $oldBucket, path: $oldFilePath");
-
-          // Use the extracted bucket name
+          // Use the extracted bucket name.
           final oldStorage = supabase.storage.from(oldBucket);
           final deleteResponse = await oldStorage.remove([oldFilePath]);
-
+          // Check response value from deletion.
           if (deleteResponse.isNotEmpty) {
             print("✅ Old file deleted successfully.");
           } else {
@@ -259,15 +244,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
           print("⚠️ Invalid URL structure: $oldFileUrl");
         }
       }
-
       print("🚨 Uploading file: $fileName to $storageBucket");
-
+      // Upload the file to the bucket.
       final response = await storage.uploadBinary(
-        'pictures/$fileName', // Path in Supabase Storage
+        'pictures/$fileName', // Path in Supabase Storage.
         fileBytes,
         fileOptions: const FileOptions(contentType: 'image/jpeg'),
       );
-
       print("✅ Upload successful: $response");
       return storage.getPublicUrl('pictures/$fileName');
     } catch (e) {
@@ -276,26 +259,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  // Function to save user input as needed.
   Future<void> _saveProfile() async {
     try {
       final int? userId = context.read<UserProvider>().userId;
       String? profileUrl;
       String? listingUrl;
-
-      // Generate timestamp
+      // Generate timestamp.
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-
-      // Retrieve existing profile photo URL
+      // Retrieve existing profile photo URL.
       String? existingProfileUrl;
       String? existingListingUrl;
-
       if (userType == "Renter") {
         final profileData = await supabase
             .from('preferences_table')
             .select('photo_url')
             .eq('preference_id', profileID as Object)
             .maybeSingle();
-
         existingProfileUrl = profileData?['photo_url'];
       } else if (userType == "Landlord") {
         final listingData = await supabase
@@ -303,11 +283,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
             .select('photo_url')
             .eq('listing_id', profileID as Object)
             .maybeSingle();
-
         existingListingUrl = listingData?['photo_url'];
       }
-
-      // Upload new profile picture
+      // Converting mobile upload to bytes.
+      if (!kIsWeb && listingPictureFile != null) {
+        listingPictureBytes = await listingPictureFile!.readAsBytes();
+      }
+      if (!kIsWeb && profilePictureFile != null) {
+        profilePictureBytes = await profilePictureFile!.readAsBytes();
+      }
+      // Upload new profile picture.
       if (profilePictureBytes != null) {
         String profileFileName = 'profile_${userId}_$timestamp.jpg';
         profileUrl = await uploadFile(profilePictureBytes, profileFileName,
@@ -316,8 +301,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       } else {
         print('No new profile picture provided.');
       }
-
-      // Upload new listing picture
+      // Upload new listing picture.
       if (listingPictureBytes != null) {
         String listingFileName = 'listing_${userId}_$timestamp.jpg';
         listingUrl = await uploadFile(listingPictureBytes, listingFileName,
@@ -326,26 +310,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
       } else {
         print('No new listing picture provided.');
       }
-
-      // Fetch Latitude & Longitude
+      // Fetch Latitude & Longitude.
       String locationInput = locationController.text;
       Map<String, double>? coordinates = await getLatLong(locationInput);
       double latitude = coordinates?['latitude'] ?? 0.0;
       double longitude = coordinates?['longitude'] ?? 0.0;
-
       print("✅ Retrieved profileId: $profileID");
-
-      // Determine table and update accordingly
+      // Determine table and update accordingly.
       if (userType == "Renter") {
-        // Ensure the profile exists before updating
+        // Ensure the profile exists before updating.
         final existingProfile = await supabase
             .from('preferences_table')
             .select('preference_id')
             .eq('preference_id', profileID as Object)
             .maybeSingle();
-
         if (existingProfile != null) {
-          // Update existing profile
+          // Update existing profile.
           final updateData = {
             'preferred_name': nameController.text,
             'profile_bio': bioController.text,
@@ -360,32 +340,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'amenities': amenitiesController.text,
             'is_pref_private': prefPrivate,
           };
-
-          // Conditionally add 'photo_url' only if pictureChanged is true
+          // Conditionally add 'photo_url' only if pictureChanged is true.
           if (pictureChanged && profileUrl != null) {
             updateData['photo_url'] = profileUrl;
           }
-
           final response = await supabase
               .from('preferences_table')
               .update(updateData)
               .eq('preference_id', profileID as Object)
               .select();
-
           print("✅ Updated listing: $response");
         } else {
           print("⚠️ No existing profile found for userId: $profileID");
         }
       } else if (userType == "Landlord") {
-        // Ensure the listing exists before updating
+        // Ensure the listing exists before updating.
         final existingListing = await supabase
             .from('listings_table')
             .select('listing_id')
             .eq('listing_id', profileID as Object)
             .maybeSingle();
-
         if (existingListing != null) {
-          // Update existing listing
+          // Update existing listing.
           final updateData = {
             'street_address': addressController.text,
             'location': locationController.text,
@@ -401,24 +377,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'listing_bio': bioController.text,
             'is_private': isPrivate,
           };
-
-          // Conditionally add 'photo_url' only if pictureChanged is true
+          // Conditionally add 'photo_url' only if pictureChanged is true.
           if (pictureChanged && listingUrl != null) {
             updateData['photo_url'] = listingUrl;
           }
-
           final response = await supabase
               .from('listings_table')
               .update(updateData)
               .eq('listing_id', profileID as Object)
               .select();
-
           print("✅ Updated listing: $response");
         } else {
           print("⚠️ No existing listing found for userId: $profileID");
         }
       }
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Profile updated successfully!")),
       );
@@ -431,6 +403,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  // Common UI.
   @override
   Widget build(BuildContext context) {
     if (userType == null) {
@@ -439,7 +412,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         body: Center(child: CircularProgressIndicator()), // Loading state
       );
     }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -479,7 +451,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Renter Form UI
+  // Renter Form UI.
   Widget _buildRenterForm() {
     return Column(
       children: [
@@ -493,7 +465,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         _buildTextField("Preferred Name", nameController, Icons.people),
         _buildTextFieldWithSuggestions('Desired City'),
-        //_buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Budget (\$)", budgetController, Icons.attach_money),
         _buildCounter(
@@ -532,7 +503,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Landlord Form UI
+  // Landlord Form UI.
   Widget _buildLandlordForm() {
     return Column(
       children: [
@@ -549,7 +520,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ),
         _buildTextFieldWithSuggestions('Rental City'),
-        //_buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Address", addressController, Icons.home),
         _buildTextField("Asking Price (\$)", priceController, Icons.money),
@@ -591,7 +561,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Helper Widgets
+  // Function to build TextField.
   Widget _buildTextField(
       String label, TextEditingController controller, IconData icon) {
     return Padding(
@@ -607,7 +577,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Modified TextField with suggestions
+  // Function to build modified TextField with suggestions.
   Widget _buildTextFieldWithSuggestions(String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,10 +593,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
           onChanged: (value) {
             if (value.isNotEmpty) {
               fetchCitySuggestions(
-                  value); // Fetch suggestions when text changes
+                  value); // Fetch suggestions when text changes.
             } else {
               setState(() {
-                citySuggestions = []; // Clear suggestions when text is empty
+                citySuggestions = []; // Clear suggestions when text is empty.
               });
             }
           },
@@ -634,7 +604,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         SizedBox(height: 16),
         if (citySuggestions.isNotEmpty)
           Container(
-            height: 200, // Set a height for the suggestions list
+            height: 200, // Set a height for the suggestions list.
             child: ListView.builder(
               itemCount: citySuggestions.length,
               itemBuilder: (context, index) {
@@ -642,9 +612,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   title: Text(citySuggestions[index]),
                   onTap: () {
                     locationController.text =
-                        citySuggestions[index]; // Set selected city
+                        citySuggestions[index]; // Set selected city.
                     setState(() {
-                      citySuggestions = []; // Hide suggestions after selection
+                      citySuggestions = []; // Hide suggestions after selection.
                     });
                   },
                 );
@@ -655,6 +625,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  // Function to build counter.
   Widget _buildCounter(String label, int value, Function(int) onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -673,6 +644,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  // Function to build checkbox.
   Widget _buildCheckbox(String label, bool value, Function(bool) onChanged) {
     return CheckboxListTile(
       title: Text(label),
@@ -682,6 +654,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 }
 
+// Function to build images, if exists.
 Widget _buildProfileImage({
   required String? profilePictureURL,
   required Uint8List? profilePictureBytes,
@@ -691,23 +664,24 @@ Widget _buildProfileImage({
     return CircleAvatar(
       radius: 50,
       backgroundImage: profilePictureBytes != null
-          ? MemoryImage(profilePictureBytes) // Show selected image
+          ? MemoryImage(profilePictureBytes) // Show selected image.
           : (profilePictureURL != null && profilePictureURL.isNotEmpty
-              ? NetworkImage(profilePictureURL) // Show stored image
+              ? NetworkImage(profilePictureURL) // Show stored image.
               : AssetImage('assets/placeholder.png') as ImageProvider),
     );
   } else {
     return CircleAvatar(
       radius: 50,
       backgroundImage: profilePictureFile != null
-          ? FileImage(profilePictureFile) // Show selected image
+          ? FileImage(profilePictureFile) // Show selected image.
           : (profilePictureURL != null && profilePictureURL.isNotEmpty
-              ? NetworkImage(profilePictureURL) // Show stored image
+              ? NetworkImage(profilePictureURL) // Show stored image.
               : AssetImage('assets/placeholder.png') as ImageProvider),
     );
   }
 }
 
+// Extension to retrieve error.
 extension on List<FileObject> {
   get error => null;
 }

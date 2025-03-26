@@ -4,11 +4,11 @@ import 'package:provider/provider.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
+  // Common UI.
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final selectedProfile = userProvider.selectedProfile;
     final userType = userProvider.userType;
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -29,7 +29,7 @@ class ProfilePage extends StatelessWidget {
                                       userProvider.selectedProfile!) ==
                                   true))
                       ? userProvider.selectedProfile
-                      : null, // Ensures the value exists in the list
+                      : null, // Ensures the value exists in the list.
                   hint: const Text("Select Profile"),
                   dropdownColor: Colors.white,
                   icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -75,7 +75,7 @@ class ProfilePage extends StatelessWidget {
         ],
       ),
       body: selectedProfile == null
-          ? Center(
+          ? const Center(
               child: Text(
                 "No profile selected",
                 style: TextStyle(fontSize: 18, color: Colors.grey),
@@ -98,13 +98,13 @@ class ProfilePage extends StatelessWidget {
                       userType == "Renter"
                           ? selectedProfile['preferred_name'] ?? "Unknown"
                           : selectedProfile['street_address'] ?? "Unknown",
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text("About Me",
+                    const Text("About Me",
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),

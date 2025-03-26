@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bcrypt/bcrypt.dart';
 
 class SignUpPage extends StatelessWidget {
+  // Sign Up Fields.
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -12,10 +13,9 @@ class SignUpPage extends StatelessWidget {
   final TextEditingController confirmPasswordController =
       TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-
+  // Function to sign up a user.
   Future<void> _signUp(BuildContext context) async {
     final supabase = Supabase.instance.client;
-
     // Basic input validation
     if (firstNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,21 +53,18 @@ class SignUpPage extends StatelessWidget {
       );
       return;
     }
-
-    // Confirm password validation
+    // Confirm password validation.
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Passwords Do Not Match")),
       );
       return;
     }
-
     try {
-      // Hash the password using bcrypt before saving
+      // Hash the password using bcrypt before saving.
       final hashedPassword =
           BCrypt.hashpw(passwordController.text.trim(), BCrypt.gensalt());
-
-      // Insert the user profile data into the database (with hashed password)
+      // Insert the user profile data into the database. (with hashed password)
       final response = await supabase
           .from('users_table')
           .insert({
@@ -81,23 +78,21 @@ class SignUpPage extends StatelessWidget {
           })
           .select('user_id')
           .single();
-
       print(response);
-
       if (response.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Sign-up Failed: ${response}")),
         );
         return;
       }
-      // Extract user_id from response
+      // Extract user_id from response.
       final int userId = response['user_id'];
       print("✅ Sign-up successful! New User ID: $userId");
 
-      // Save userId in Provider for session tracking
+      // Save userId in Provider for session tracking.
       Provider.of<UserProvider>(context, listen: false).setUserId(userId);
 
-      // Navigate to the profile creation page after successful sign-up
+      // Navigate to the profile creation page after successful sign-up.
       Navigator.pushReplacementNamed(context, '/build-profile');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,6 +101,7 @@ class SignUpPage extends StatelessWidget {
     }
   }
 
+  // Common UI.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

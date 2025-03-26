@@ -20,12 +20,11 @@ class MessengerApp extends StatelessWidget {
   }
 }
 
-// Chat List Screen
+// Chat List Screen.
 class ChatListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Contact Page"),
@@ -45,7 +44,7 @@ class ChatListScreen extends StatelessWidget {
                                       userProvider.selectedProfile!) ==
                                   true))
                       ? userProvider.selectedProfile
-                      : null, // Ensures the value exists in the list
+                      : null, // Ensures the value exists in the list.
                   hint: const Text("Select Profile"),
                   dropdownColor: Colors.white,
                   icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -91,7 +90,7 @@ class ChatListScreen extends StatelessWidget {
         ],
       ),
       body: FutureBuilder<List<Map<String, String>>>(
-        future: userProvider.fetchContacts(), // Fetch contacts dynamically
+        future: userProvider.fetchContacts(), // Fetch contacts dynamically.
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -100,9 +99,7 @@ class ChatListScreen extends StatelessWidget {
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text('No contacts available.'));
           }
-
           final contacts = snapshot.data!;
-
           return ListView.builder(
             itemCount: contacts.length,
             itemBuilder: (context, index) {
@@ -112,16 +109,16 @@ class ChatListScreen extends StatelessWidget {
                   backgroundColor: Colors.teal,
                   backgroundImage: contact['picture'] != null &&
                           contact['picture']!.isNotEmpty
-                      ? NetworkImage(contact['picture']!) // Use the image URL
-                      : null, // If no image is available, fall back to initials
+                      ? NetworkImage(contact['picture']!) // Use the image URL.
+                      : null, // If no image is available, fall back to initials.
                   child:
                       contact['picture'] == null || contact['picture']!.isEmpty
                           ? Text(
                               contact['name']![
-                                  0], // Display the first letter of the name
+                                  0], // Display the first letter of the name.
                               style: TextStyle(color: Colors.white),
                             )
-                          : null, // No text if there's an image
+                          : null, // No text if there's an image.
                 ),
                 title: Text(contact['name']!),
                 subtitle: Text(contact['lastMessage']!),
@@ -129,14 +126,13 @@ class ChatListScreen extends StatelessWidget {
                   int? matchedProfileId =
                       int.tryParse(contact['matchedProfileId'] ?? '') ?? 0;
                   if (matchedProfileId == 0) {
-                    // Handle missing or incorrect ID
+                    // Handle missing or incorrect ID.
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Invalid matched profile ID.")),
                     );
                     return;
                   }
-
-                  // Navigate to ChatScreen with correct profile ID
+                  // Navigate to ChatScreen with correct profile ID.
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -156,33 +152,30 @@ class ChatListScreen extends StatelessWidget {
   }
 }
 
-// Chat Screen
+// Chat Screen.
 class ChatScreen extends StatefulWidget {
   final int matchedProfileId;
   final String contactName;
-
   ChatScreen({required this.matchedProfileId, required this.contactName});
-
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController messageController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     userProvider
-        .fetchMessages(widget.matchedProfileId); // Fetch full chat history
+        .fetchMessages(widget.matchedProfileId); // Fetch full chat history.
   }
 
+  // Common UI.
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final messages = userProvider.getMessages(widget.matchedProfileId);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Chat with ${widget.contactName}'),
@@ -191,7 +184,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Messages List
+          // Messages List.
           Expanded(
             child: ListView.builder(
               itemCount: messages.length,
@@ -218,7 +211,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          // Message Input
+          // Message Input.
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(

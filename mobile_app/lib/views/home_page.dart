@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:card_swiper/card_swiper.dart';
-import '../providers/user_provider.dart'; // Import your provider
+import '../providers/user_provider.dart';
 
 void main() {
   runApp(
@@ -12,6 +12,7 @@ void main() {
   );
 }
 
+// Example.
 class SwipeExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -29,12 +30,11 @@ class SwipePage extends StatefulWidget {
 }
 
 class _SwipePageState extends State<SwipePage> {
-  int currentIndex = 0; // Keep track of the current index
-
+  int currentIndex = 0; // Keep track of the current index.
+  // Common UI.
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home Page"),
@@ -54,7 +54,7 @@ class _SwipePageState extends State<SwipePage> {
                                       userProvider.selectedProfile!) ==
                                   true))
                       ? userProvider.selectedProfile
-                      : null, // Ensures the value exists in the list
+                      : null, // Ensures the value exists in the list.
                   hint: const Text("Select Profile"),
                   dropdownColor: Colors.white,
                   icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -103,21 +103,18 @@ class _SwipePageState extends State<SwipePage> {
         builder: (context, userProvider, child) {
           final isRenter = userProvider.selectedProfile != null &&
               userProvider.userType! == 'Renter';
-
           print('isRenter: $isRenter');
-
-          // Determine which data to show based on the user type
+          // Determine which data to show based on the user type.
           final profilesToShow = userProvider.profiles;
-
           return profilesToShow?.isEmpty ?? true
               ? const Center(child: CircularProgressIndicator())
               : Stack(
                   children: [
                     Swiper(
                       itemBuilder: (BuildContext context, int index) {
-                        // Determine whether to show profile or listing data
+                        // Determine whether to show profile or listing data.
                         final data = profilesToShow![
-                            currentIndex]; // Renters see Landlord profiles
+                            currentIndex]; // Renters see Landlord profiles.
                         return Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
@@ -147,11 +144,11 @@ class _SwipePageState extends State<SwipePage> {
                                       // Assuming it is a renter profile, display listings.
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment
-                                            .center, // Centers all child widgets horizontally
+                                            .center, // Centers all child widgets horizontally.
                                         children: [
                                           Row(
                                             mainAxisAlignment: MainAxisAlignment
-                                                .center, // Centers row content
+                                                .center, // Centers row content.
                                             children: [
                                               Text(
                                                 data['street_address'] ??
@@ -163,7 +160,7 @@ class _SwipePageState extends State<SwipePage> {
                                               ),
                                               const SizedBox(
                                                   width:
-                                                      8), // Space between the name and score
+                                                      8), // Space between the name and score.
                                               Text(
                                                 '(Landlord Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})',
                                                 style: const TextStyle(
@@ -196,15 +193,15 @@ class _SwipePageState extends State<SwipePage> {
                                         ],
                                       )
                                     ]
-                                    // For Renters, show preference-specific information
+                                    // For Renters, show preference-specific information.
                                     else if (!isRenter) ...[
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment
-                                            .center, // Centers all child widgets horizontally
+                                            .center, // Centers all child widgets horizontally.
                                         children: [
                                           Row(
                                             mainAxisAlignment: MainAxisAlignment
-                                                .center, // Centers row content
+                                                .center, // Centers row content.
                                             children: [
                                               Text(
                                                 data['preferred_name'] ??
@@ -216,9 +213,9 @@ class _SwipePageState extends State<SwipePage> {
                                               ),
                                               const SizedBox(
                                                   width:
-                                                      8), // Add some space between the name and score
+                                                      8), // Add some space between the name and score.
                                               Text(
-                                                '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})', // Format the compatibility score
+                                                '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})', // Format the compatibility score.
                                                 style: const TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.bold,
@@ -266,7 +263,7 @@ class _SwipePageState extends State<SwipePage> {
                         });
                       },
                     ),
-                    // Floating Action Buttons
+                    // Floating Action Buttons.
                     Positioned(
                       right: 20,
                       bottom: 80,
@@ -283,7 +280,7 @@ class _SwipePageState extends State<SwipePage> {
                           userProvider.likeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
-                            currentIndex++; // Move to the next profile
+                            currentIndex++; // Move to the next profile.
                           });
                         },
                         backgroundColor: Colors.green,
@@ -306,7 +303,7 @@ class _SwipePageState extends State<SwipePage> {
                           userProvider.dislikeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
-                            currentIndex++; // Move to the next profile
+                            currentIndex++; // Move to the next profile.
                           });
                         },
                         backgroundColor: Colors.red,

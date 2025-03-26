@@ -19,15 +19,13 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
   List<String> citySuggestions = [];
   Timer? _debounce;
-  String? userType; // Determines if the user is a renter or landlord
+  String? userType; // Determines if the user is a renter or landlord.
   final ImagePicker _picker = ImagePicker();
   File? pickedFile;
-
-  // Common fields
+  // Common fields.
   final TextEditingController locationController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
-
-  // Renter-specific fields
+  // Renter-specific fields.
   final TextEditingController nameController = TextEditingController();
   final TextEditingController budgetController = TextEditingController();
   bool petsAllowed = false;
@@ -37,29 +35,25 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   int bathCount = 1;
   final TextEditingController amenitiesController = TextEditingController();
   File? profilePicture;
-
-  // Landlord-specific fields
+  // Landlord-specific fields.
   final TextEditingController addressController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   bool smokingAllowed = false;
   bool isPrivate = false;
   final TextEditingController availabilityController = TextEditingController();
   File? listingPicture;
-
-  // Image related fields
-  File? listingPictureFile; // For mobile (Android/iOS)
-  Uint8List? listingPictureBytes; // For web
-
-  File? profilePictureFile; // For mobile (Android/iOS)
-  Uint8List? profilePictureBytes; // For web
-
+  // Image related fields.
+  File? listingPictureFile; // For mobile. (Android/iOS)
+  Uint8List? listingPictureBytes; // For web.
+  File? profilePictureFile; // For mobile. (Android/iOS)
+  Uint8List? profilePictureBytes; // For web.
   @override
   void initState() {
     super.initState();
     _showUserTypeDialog();
   }
 
-  // Show popup to select user type
+  // Show popup to select user type.
   void _showUserTypeDialog() {
     Future.delayed(
       Duration.zero,
@@ -94,13 +88,12 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Function to fetch city suggestions from OpenCage API
+  // Function to fetch city suggestions from OpenCage API.
   Future<void> fetchCitySuggestions(String query) async {
     if (_debounce?.isActive ?? false) {
-      _debounce!.cancel(); // Cancel the previous debounce timer
+      _debounce!.cancel(); // Cancel the previous debounce timer.
     }
-
-    // Only call API if the user has typed more than 2 characters
+    // Only call API if the user has typed more than 2 characters.
     if (query.length > 2) {
       _debounce = Timer(const Duration(milliseconds: 500), () async {
         try {
@@ -108,34 +101,30 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
             Uri.parse(
                 'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(query)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1'),
           );
-
           if (response.statusCode == 200) {
-            // Parse and handle the successful response here
+            // Parse and handle the successful response here.
             final data = jsonDecode(response.body);
-
-            // Extract the results (city, province/state, country)
+            // Extract the results. (city, province/state, country)
             List<String> suggestions = [];
             for (var result in data['results']) {
               String? city = result['components']['_normalized_city'];
               String? state = result['components']['state'];
               String? country = result['components']['country'];
-
-              // Construct the suggestion string based on available data
+              // Construct the suggestion string based on available data.
               String suggestion = '';
               if (city != null) suggestion += '$city, ';
               if (state != null) suggestion += '$state, ';
               if (country != null) suggestion += '$country';
-
               if (suggestion.isNotEmpty) {
                 suggestions.add(suggestion);
               }
             }
-            // Update the UI with the suggestions
+            // Update the UI with the suggestions.
             setState(() {
               citySuggestions = suggestions;
             });
           } else {
-            // Handle error response from the API
+            // Handle error response from the API.
             print('Failed to load city suggestions: ${response.statusCode}');
           }
         } catch (e) {
@@ -143,17 +132,16 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         }
       });
     } else {
-      // Optionally clear previous suggestions if query length is too short
+      // Optionally clear previous suggestions if query length is too short.
       print('Please enter more than 2 characters to get city suggestions');
     }
   }
 
+  // Calling API to determine the city suggestions based on the user's input.
   Future<Map<String, double>?> getLatLong(String location) async {
     final url = Uri.parse(
         'https://api.opencagedata.com/geocode/v1/json?q=${Uri.encodeComponent(location)}&key=dd0560808eb443058b761a51b7e6ac26&no_annotations=1');
-
     final response = await http.get(url);
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['status']['code'] == 200 && data['results'].isNotEmpty) {
@@ -164,28 +152,29 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     return null;
   }
 
-  // Function to pick the image the user selects.
+  // Function to set listing pictures to be uploaded.
   Future<void> _pickListingPicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
       if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes(); // Convert to Uint8List
+        final bytes = await pickedFile.readAsBytes(); // Convert to Uint8List.
         setState(() {
-          listingPictureBytes = bytes; // Use Uint8List for web
+          listingPictureBytes = bytes; // Use Uint8List for web.
           print("🚨 Listing picture bytes: ${bytes.length}");
-          listingPictureFile = null; // Ensure File is null on web
+          listingPictureFile = null; // Ensure File is null on web.
         });
       } else {
         setState(() {
-          listingPictureFile = File(pickedFile.path); // Use File for mobile
+          listingPictureFile = File(pickedFile.path); // Use File for mobile.
           print("🚨 Listing picture file path: ${pickedFile.path}");
-          listingPictureBytes = null; // Ensure Uint8List is null on mobile
+          listingPictureBytes = null; // Ensure Uint8List is null on mobile.
         });
       }
     }
   }
 
+  // Function to set profile pictures to be uploaded.
   Future<void> _pickProfilePicture() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
@@ -207,24 +196,21 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     }
   }
 
+  // Function to upload image files to bucket.
   Future<String?> uploadFile(
       Uint8List? fileBytes, String fileName, String storageBucket) async {
     if (fileBytes == null) {
       print("❌ Error: No file bytes provided.");
       return null;
     }
-
     final storage = supabase.storage.from(storageBucket);
-
     try {
       print("🚨 Uploading file: $fileName to $storageBucket");
-
       final response = await storage.uploadBinary(
-        'pictures/$fileName', // Path in Supabase Storage
+        'pictures/$fileName', // Path in Supabase Storage.
         fileBytes,
         fileOptions: const FileOptions(contentType: 'image/jpeg'),
       );
-
       print("✅ Upload successful: $response");
       return storage.getPublicUrl('pictures/$fileName');
     } catch (e) {
@@ -233,16 +219,22 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     }
   }
 
+  // Function to save user input depending on userType selected.
   Future<void> _saveProfile() async {
     try {
       final int? userId = context.read<UserProvider>().userId;
       String? profileUrl;
       String? listingUrl;
-
-      // Generate timestamp
+      // Generate timestamp.
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      // Profile picture upload
-      // Upload new profile picture
+      // Converting mobile uploads to bytes.
+      if (!kIsWeb && listingPictureFile != null) {
+        listingPictureBytes = await listingPictureFile!.readAsBytes();
+      }
+      if (!kIsWeb && profilePictureFile != null) {
+        profilePictureBytes = await profilePictureFile!.readAsBytes();
+      }
+      // Upload new profile picture.
       if (profilePictureBytes != null) {
         String profileFileName = 'profile_${userId}_$timestamp.jpg';
         profileUrl = await uploadFile(
@@ -251,8 +243,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       } else {
         print('No new profile picture provided.');
       }
-
-      // Upload new listing picture
+      // Upload new listing picture.
       if (listingPictureBytes != null) {
         String listingFileName = 'listing_${userId}_$timestamp.jpg';
         listingUrl = await uploadFile(
@@ -261,14 +252,12 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
       } else {
         print('No new listing picture provided.');
       }
-
-      // Fetch Latitude & Longitude
+      // Fetch Latitude & Longitude.
       String locationInput = locationController.text;
       Map<String, double>? coordinates = await getLatLong(locationInput);
       double latitude = coordinates?['latitude'] ?? 0.0;
       double longitude = coordinates?['longitude'] ?? 0.0;
-
-      // Determine the table depending on user type and insert data
+      // Determine the table depending on user type and insert data.
       if (userType == "Renter") {
         final response = await supabase.from('preferences_table').insert({
           'user_id': userId,
@@ -276,28 +265,28 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
               nameController.text.isNotEmpty ? nameController.text : "NA",
           'profile_bio':
               bioController.text.isNotEmpty ? bioController.text : "NA",
-          'photo_url': profileUrl ?? "", // Fallback to empty string if null
+          'photo_url': profileUrl ?? "", // Fallback to empty string if null.
           'location': locationController.text.isNotEmpty
               ? locationController.text
               : "Unknown",
           'latitude': latitude,
           'longitude': longitude,
           'max_budget': int.tryParse(budgetController.text) ??
-              0, // Default to 0 if not parsable
-          'pets_allowed': petsAllowed ?? false, // Use default value if null
-          'smoking_allowed': nonSmoking ?? false, // Use default value if null
-          'bed_count': bedCount ?? 0, // Default to 0 if null
-          'bath_count': bathCount ?? 0, // Default to 0 if null
+              0, // Default to 0 if not parsable.
+          'pets_allowed': petsAllowed ?? false, // Use default value if null.
+          'smoking_allowed': nonSmoking ?? false, // Use default value if null.
+          'bed_count': bedCount ?? 0, // Default to 0 if null.
+          'bath_count': bathCount ?? 0, // Default to 0 if null.
           'amenities': amenitiesController.text.isNotEmpty
               ? amenitiesController.text
               : "",
-          'is_pref_private': prefPrivate ?? false, // Default to false if null
+          'is_pref_private': prefPrivate ?? false, // Default to false if null.
         }).select();
         print(response);
       } else if (userType == "Landlord") {
         final response = await supabase.from('listings_table').insert({
           'user_id': userId,
-          'photo_url': listingUrl ?? "", // Fallback to empty string if null
+          'photo_url': listingUrl ?? "", // Fallback to empty string if null.
           'street_address': addressController.text.isNotEmpty
               ? addressController.text
               : "Unknown",
@@ -307,26 +296,25 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           'latitude': latitude,
           'longitude': longitude,
           'asking_price': int.tryParse(priceController.text) ??
-              0, // Default to 0 if not parsable
-          'bed_count': bedCount ?? 0, // Default to 0 if null
-          'bath_count': bathCount ?? 0, // Default to 0 if null
+              0, // Default to 0 if not parsable.
+          'bed_count': bedCount ?? 0, // Default to 0 if null.
+          'bath_count': bathCount ?? 0, // Default to 0 if null.
           'amenities': amenitiesController.text.isNotEmpty
               ? amenitiesController.text
               : "",
-          'pets_allowed': petsAllowed ?? false, // Default to false if null
+          'pets_allowed': petsAllowed ?? false, // Default to false if null.
           'smoking_allowed':
-              smokingAllowed ?? false, // Default to false if null
+              smokingAllowed ?? false, // Default to false if null.
           'availability': availabilityController.text.isNotEmpty
               ? availabilityController.text
               : "NA",
           'listing_bio':
               bioController.text.isNotEmpty ? bioController.text : "NA",
-          'is_private': isPrivate ?? false, // Default to false if null
+          'is_private': isPrivate ?? false, // Default to false if null.
         }).select();
         print(response);
       }
-
-      // Show success message and navigate
+      // Show success message and navigate.
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Profile saved successfully!")));
       Navigator.pushReplacementNamed(context, '/home');
@@ -337,15 +325,15 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     }
   }
 
+  // Common UI.
   @override
   Widget build(BuildContext context) {
     if (userType == null) {
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator()), // Loading state
+        body: Center(child: CircularProgressIndicator()), // Loading state.
       );
     }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -356,9 +344,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         backgroundColor: Colors.teal,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back), // Back arrow icon
+          icon: const Icon(Icons.arrow_back), // Back arrow icon.
           onPressed: () {
-            // Navigator.pushNamed(context, '/home');
             Navigator.pop(context);
           },
         ),
@@ -386,7 +373,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Renter Form UI
+  // Renter Form UI.
   Widget _buildRenterForm() {
     return Column(
       children: [
@@ -394,9 +381,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           onTap: _pickProfilePicture,
           child: CircleAvatar(
             radius: 60,
-            // backgroundImage: profilePicture != null
-            //     ? FileImage(profilePicture!)
-            //     : AssetImage("assets/placeholder.jpg") as ImageProvider,
             child: profilePicture == null
                 ? Icon(Icons.camera_alt, size: 40, color: Colors.white)
                 : null,
@@ -409,7 +393,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         SizedBox(height: 20),
         _buildTextField("Preferred Name", nameController, Icons.person),
         _buildTextFieldWithSuggestions("Desired City"),
-        //_buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Budget (\$)", budgetController, Icons.attach_money),
         _buildCounter(
@@ -448,7 +431,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Landlord Form UI
+  // Landlord Form UI.
   Widget _buildLandlordForm() {
     return Column(
       children: [
@@ -470,7 +453,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         ),
         SizedBox(height: 20),
         _buildTextFieldWithSuggestions("Rental City"),
-        //_buildTextField("Location", locationController, Icons.location_on),
         _buildTextField("Bio", bioController, Icons.person),
         _buildTextField("Address", addressController, Icons.home),
         _buildTextField("Asking Price (\$)", priceController, Icons.money),
@@ -512,7 +494,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Helper Widgets
+  // Function to build TextField.
   Widget _buildTextField(
       String label, TextEditingController controller, IconData icon) {
     return Padding(
@@ -528,7 +510,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
-  // Modified TextField with suggestions
+  // Function to build modified TextField with suggestions.
   Widget _buildTextFieldWithSuggestions(String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,10 +526,10 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           onChanged: (value) {
             if (value.isNotEmpty) {
               fetchCitySuggestions(
-                  value); // Fetch suggestions when text changes
+                  value); // Fetch suggestions when text changes.
             } else {
               setState(() {
-                citySuggestions = []; // Clear suggestions when text is empty
+                citySuggestions = []; // Clear suggestions when text is empty.
               });
             }
           },
@@ -555,7 +537,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         SizedBox(height: 16),
         if (citySuggestions.isNotEmpty)
           Container(
-            height: 200, // Set a height for the suggestions list
+            height: 200, // Set a height for the suggestions list.
             child: ListView.builder(
               itemCount: citySuggestions.length,
               itemBuilder: (context, index) {
@@ -563,9 +545,9 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
                   title: Text(citySuggestions[index]),
                   onTap: () {
                     locationController.text =
-                        citySuggestions[index]; // Set selected city
+                        citySuggestions[index]; // Set selected city.
                     setState(() {
-                      citySuggestions = []; // Hide suggestions after selection
+                      citySuggestions = []; // Hide suggestions after selection.
                     });
                   },
                 );
@@ -576,6 +558,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
+  // Function to build counters.
   Widget _buildCounter(String label, int value, Function(int) onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -594,6 +577,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     );
   }
 
+  // Function to build check boxes.
   Widget _buildCheckbox(String label, bool value, Function(bool) onChanged) {
     return CheckboxListTile(
       title: Text(label),

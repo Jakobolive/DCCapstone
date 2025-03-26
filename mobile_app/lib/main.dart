@@ -13,12 +13,12 @@ import 'package:capstone_app/views/sign_up_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Supabase connection.
   await Supabase.initialize(
     url: 'https://enwbbyztboyashdtxocf.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVud2JieXp0Ym95YXNoZHR4b2NmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkyMzQxMzAsImV4cCI6MjA1NDgxMDEzMH0.Bz0wUAZraKQeqFk8i-zCC18QKc_iNZqxGk9HAJyCU_E',
   );
-
   runApp(
     MultiProvider(
       providers: [
@@ -29,19 +29,20 @@ void main() async {
   );
 }
 
+// Create Supabase client variable.
 final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Removes the debug banner
-      title: 'URent App Demo',
+      debugShowCheckedModeBanner: false, // Removes the debug banner.
+      title: 'URent App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: '/login', // Start at login page
+      initialRoute: '/login', // Start at login page.
       routes: {
         '/login': (context) => LoginPage(),
         '/signup': (context) => SignUpPage(),
@@ -49,7 +50,7 @@ class MyApp extends StatelessWidget {
         '/build-profile': (context) => BuildProfilePage(),
         '/matched': (context) => MatchPopupPage(
               matchName: 'John',
-              matchProfileImage: '.', // Placeholder
+              matchProfileImage: '.', // Placeholder.
             ),
         '/edit-profile': (context) => EditProfilePage(),
       },
@@ -57,7 +58,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Main Navigation with Bottom Navigation Bar
+// Main Navigation with Bottom Navigation Bar.
 class MainScreen extends StatefulWidget {
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -65,19 +66,20 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-
+  // Bottom navigation bar pages.
   final List<Widget> _pages = [
-    SwipePage(), // Replacing the recursive MainScreen() call
+    SwipePage(),
     MessengerApp(),
     ProfilePage(),
   ];
-
+  // Adding functionality.
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  // Code for bottom navigation.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
