@@ -356,7 +356,8 @@ class UserProvider extends ChangeNotifier {
       final matchedProfiles = await supabase
           .from('match_table')
           .select('preference_id, listing_id')
-          .or('preference_id.eq.$currentProfileId,listing_id.eq.$currentProfileId');
+          .or('preference_id.eq.$currentProfileId,listing_id.eq.$currentProfileId')
+          .eq('match_status', 'accepted');
       List<Map<String, String>> contacts = [];
       // Iterate through matches.
       for (var match in matchedProfiles) {

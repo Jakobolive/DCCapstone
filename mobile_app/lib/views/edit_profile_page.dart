@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -57,6 +58,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void initState() {
     super.initState();
     _loadProfileData();
+  }
+
+  // Function to check and request permissions
+  Future<void> _checkPermissions() async {
+    // Request gallery permission
+    var status = await Permission.photos.status;
+    if (!status.isGranted) {
+      await Permission.photos.request();
+    }
+
+    // Request camera permission
+    var cameraStatus = await Permission.camera.status;
+    if (!cameraStatus.isGranted) {
+      await Permission.camera.request();
+    }
   }
 
   // Load fields with existing profile data.
@@ -166,6 +182,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick the image the user selects.
   Future<void> _pickListingPicture() async {
+    // First, check and request permissions.
+    //await _checkPermissions();
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
@@ -189,6 +207,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick the image the user selects.
   Future<void> _pickProfilePicture() async {
+    // First, check and request permissions.
+    //await _checkPermissions();
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
