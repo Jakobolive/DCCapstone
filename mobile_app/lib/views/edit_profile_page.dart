@@ -182,8 +182,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick the image the user selects.
   Future<void> _pickListingPicture() async {
-    // First, check and request permissions.
-    //await _checkPermissions();
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
@@ -207,8 +205,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick the image the user selects.
   Future<void> _pickProfilePicture() async {
-    // First, check and request permissions.
-    //await _checkPermissions();
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
@@ -599,49 +595,54 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to build modified TextField with suggestions.
   Widget _buildTextFieldWithSuggestions(String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: locationController,
-          decoration: InputDecoration(
-            labelText: label,
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-            prefixIcon: const Icon(Icons.location_city),
-          ),
-          onChanged: (value) {
-            if (value.isNotEmpty) {
-              fetchCitySuggestions(
-                  value); // Fetch suggestions when text changes.
-            } else {
-              setState(() {
-                citySuggestions = []; // Clear suggestions when text is empty.
-              });
-            }
-          },
-        ),
-        SizedBox(height: 16),
-        if (citySuggestions.isNotEmpty)
-          Container(
-            height: 200, // Set a height for the suggestions list.
-            child: ListView.builder(
-              itemCount: citySuggestions.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(citySuggestions[index]),
-                  onTap: () {
-                    locationController.text =
-                        citySuggestions[index]; // Set selected city.
-                    setState(() {
-                      citySuggestions = []; // Hide suggestions after selection.
-                    });
-                  },
-                );
-              },
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: locationController,
+            decoration: InputDecoration(
+              labelText: label,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              prefixIcon: const Icon(Icons.location_city),
             ),
+            onChanged: (value) {
+              if (value.isNotEmpty) {
+                fetchCitySuggestions(
+                    value); // Fetch suggestions when text changes.
+              } else {
+                setState(() {
+                  citySuggestions = []; // Clear suggestions when text is empty.
+                });
+              }
+            },
           ),
-      ],
+          if (citySuggestions.isNotEmpty)
+            Container(
+              height: 200,
+              margin: const EdgeInsets.only(
+                  top: 8), // Replacing SizedBox with margin
+              child: ListView.builder(
+                itemCount: citySuggestions.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(citySuggestions[index]),
+                    onTap: () {
+                      locationController.text =
+                          citySuggestions[index]; // Set selected city.
+                      setState(() {
+                        citySuggestions =
+                            []; // Hide suggestions after selection.
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 

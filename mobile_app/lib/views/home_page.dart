@@ -196,31 +196,20 @@ class _SwipePageState extends State<SwipePage> {
                                           crossAxisAlignment: CrossAxisAlignment
                                               .center, // Centers all child widgets horizontally.
                                           children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment
-                                                  .center, // Centers row content.
-                                              children: [
-                                                Text(
-                                                  data['street_address'] ??
-                                                      "No Address Available",
-                                                  style: const TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                const SizedBox(
-                                                    width:
-                                                        8), // Space between the name and score.
-                                                Text(
-                                                  '(Landlord Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
-                                                  '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.green),
-                                                ),
-                                              ],
+                                            Text(
+                                              data['street_address'] ??
+                                                  "No Address Available",
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              '(Landlord Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
+                                              '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green),
                                             ),
                                             Text(
                                               data['location'] ??
@@ -252,31 +241,20 @@ class _SwipePageState extends State<SwipePage> {
                                           crossAxisAlignment: CrossAxisAlignment
                                               .center, // Centers all child widgets horizontally.
                                           children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment
-                                                  .center, // Centers row content.
-                                              children: [
-                                                Text(
-                                                  data['preferred_name'] ??
-                                                      "No Name Available",
-                                                  style: const TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                const SizedBox(
-                                                    width:
-                                                        8), // Add some space between the name and score.
-                                                Text(
-                                                  '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Format the compatibility score.
-                                                  '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.green),
-                                                ),
-                                              ],
+                                            Text(
+                                              data['preferred_name'] ??
+                                                  "No Name Available",
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
+                                              '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green),
                                             ),
                                             Text(
                                               data['location'] ??

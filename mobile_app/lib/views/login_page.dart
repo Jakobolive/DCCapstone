@@ -71,6 +71,7 @@ class LoginPage extends StatelessWidget {
             centerTitle: true,
             backgroundColor: Colors.teal),
         body: SafeArea(
+            child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -146,6 +147,6 @@ class LoginPage extends StatelessWidget {
               ],
             ),
           ),
-        ));
+        )));
   }
 }

@@ -230,15 +230,15 @@ class UserProvider extends ChangeNotifier {
       // Check if selected profile exists, then compare profiles.
       if (_selectedProfile != null) {
         if (profile['bed_count'] == _selectedProfile!['bed_count']) {
-          compatibilityScore += 1;
+          compatibilityScore += 2;
         }
         if (_userType == 'Renter' &&
             profile['asking_price'] <= _selectedProfile!['max_budget']) {
-          compatibilityScore += 1;
+          compatibilityScore += 2;
         }
         if (_userType == 'Landlord' &&
             profile['max_budget'] >= _selectedProfile!['asking_price']) {
-          compatibilityScore += 1;
+          compatibilityScore += 2;
         }
         if (profile['bath_count'] == _selectedProfile!['bath_count']) {
           compatibilityScore += 1;
@@ -253,7 +253,7 @@ class UserProvider extends ChangeNotifier {
       }
       // Boost pending matches.
       if (profile['isPending']) {
-        compatibilityScore += 2; // Push pending profiles closer to the top.
+        compatibilityScore += 3; // Push pending profiles closer to the top.
       }
       profile['compatibilityScore'] = compatibilityScore;
     }
@@ -279,7 +279,6 @@ class UserProvider extends ChangeNotifier {
     _profileId =
         profile['listing_id'] as int? ?? profile['preference_id'] as int?;
     _currentProfileIndex = 0;
-    //   fetchListingsOrPreferences(); // Fetch listings or preferences after selecting a profile.
     notifyListeners();
   }
 
@@ -298,16 +297,15 @@ class UserProvider extends ChangeNotifier {
       final response = await supabase
           .from('match_table')
           .select()
-          .eq('preference_id', likedUserId as Object)
-          .eq('listing_id', currentUserId as Object)
+          .or('and(preference_id.eq.$currentUserId,listing_id.eq.$likedUserId),and(preference_id.eq.$likedUserId,listing_id.eq.$currentUserId)')
           .maybeSingle();
       if (response != null) {
         // Match exists, update to "Accepted."
         await supabase
             .from('match_table')
-            .update({'status': 'accepted'}).match({
-          'preference_id': likedUserId as Object,
-          'listing_id': currentUserId as Object,
+            .update({'match_status': 'accepted'}).match({
+          'preference_id': response['preference_id'],
+          'listing_id': response['listing_id'],
         });
       } else {
         // Creating a match status depending on userType.

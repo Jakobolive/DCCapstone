@@ -20,7 +20,8 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   final supabase = Supabase.instance.client;
   List<String> citySuggestions = [];
   Timer? _debounce;
-  String? userType; // Determines if the user is a renter or landlord.
+  String? userType =
+      "Renter"; // Determines if the user is a renter or landlord, auto set to Renter.
   final ImagePicker _picker = ImagePicker();
   File? pickedFile;
   // Common fields.
@@ -51,7 +52,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   @override
   void initState() {
     super.initState();
-    _showUserTypeDialog();
   }
 
   // Function to check and request permissions
@@ -67,41 +67,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     if (!cameraStatus.isGranted) {
       await Permission.camera.request();
     }
-  }
-
-  // Show popup to select user type.
-  void _showUserTypeDialog() {
-    Future.delayed(
-      Duration.zero,
-      () => showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Text("Select Profile Type"),
-          content: Text("Are you a renter or a landlord?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  userType = "Renter";
-                });
-                Navigator.pop(context);
-              },
-              child: Text("Renter"),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  userType = "Landlord";
-                });
-                Navigator.pop(context);
-              },
-              child: Text("Landlord"),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // Function to fetch city suggestions from OpenCage API.
@@ -170,8 +135,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
 
   // Function to set listing pictures to be uploaded.
   Future<void> _pickListingPicture() async {
-    // First, check and request permissions.
-    //await _checkPermissions();
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
@@ -194,8 +157,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
 
   // Function to set profile pictures to be uploaded.
   Future<void> _pickProfilePicture() async {
-    // First, check and request permissions.
-    //await _checkPermissions();
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     print("🚨 pickedFile: $pickedFile");
     if (pickedFile != null) {
@@ -345,22 +306,77 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
     }
   }
 
+  // Add the userType selector to the UI.
+  Widget _buildUserTypeSelector() {
+    return Center(
+      child: Container(
+        width: 250, // Set a specific width to make it smaller
+        padding: EdgeInsets.symmetric(vertical: 8), // Added vertical padding
+        margin: EdgeInsets.only(bottom: 16), // Add some space at the bottom
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8), // Rounded corners
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: DropdownButton<String>(
+          value: userType,
+          hint: Padding(
+            padding: const EdgeInsets.only(
+                left: 12.0), // Adds some padding for alignment
+            child: Text(
+              'Select User Type',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ),
+          isDense: true, // Reduce the padding inside the dropdown
+          isExpanded: true,
+          onChanged: (String? newValue) {
+            setState(() {
+              userType = newValue;
+            });
+          },
+          items: <String>['Renter', 'Landlord']
+              .map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                    left: 12.0), // Same padding as hint for consistency
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+          underline: SizedBox(), // Hides the default underline
+          icon: Padding(
+            padding: const EdgeInsets.only(
+                right: 12.0), // Match padding for icon alignment
+            child: Icon(Icons.arrow_drop_down, color: Colors.teal),
+          ),
+        ),
+      ),
+    );
+  }
+
   // Common UI.
   @override
   Widget build(BuildContext context) {
-    if (userType == null) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator()), // Loading state.
-      );
-    }
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          userType == "Renter"
-              ? "Build Renter Profile"
-              : "Build Listing Profile",
-        ),
+        title: const Text("Build Profile"),
         backgroundColor: Colors.teal,
         centerTitle: true,
         leading: IconButton(
@@ -374,6 +390,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
+            _buildUserTypeSelector(), // Add user type selection here.
             if (userType == "Renter") _buildRenterForm(),
             if (userType == "Landlord") _buildLandlordForm(),
             SizedBox(height: 20),
@@ -401,14 +418,13 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
           onTap: _pickProfilePicture,
           child: CircleAvatar(
             radius: 60,
+            backgroundImage: listingPicture != null
+                ? FileImage(listingPicture!)
+                : AssetImage("assets/placeholder.jpg") as ImageProvider,
             child: profilePicture == null
                 ? Icon(Icons.camera_alt, size: 40, color: Colors.white)
                 : null,
           ),
-        ),
-        ElevatedButton(
-          onPressed: _showUserTypeDialog,
-          child: Text(userType == null ? "Select User Type" : "$userType"),
         ),
         SizedBox(height: 20),
         _buildTextField("Preferred Name", nameController, Icons.person),
@@ -467,10 +483,6 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
                 : null,
           ),
         ),
-        ElevatedButton(
-          onPressed: _showUserTypeDialog,
-          child: Text(userType == null ? "Select User Type" : "$userType"),
-        ),
         SizedBox(height: 20),
         _buildTextFieldWithSuggestions("Rental City"),
         _buildTextField("Bio", bioController, Icons.person),
@@ -518,7 +530,7 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
   Widget _buildTextField(
       String label, TextEditingController controller, IconData icon) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
         controller: controller,
         decoration: InputDecoration(
@@ -532,49 +544,54 @@ class _BuildProfilePageState extends State<BuildProfilePage> {
 
   // Function to build modified TextField with suggestions.
   Widget _buildTextFieldWithSuggestions(String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: locationController,
-          decoration: InputDecoration(
-            labelText: label,
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-            prefixIcon: const Icon(Icons.location_city),
-          ),
-          onChanged: (value) {
-            if (value.isNotEmpty) {
-              fetchCitySuggestions(
-                  value); // Fetch suggestions when text changes.
-            } else {
-              setState(() {
-                citySuggestions = []; // Clear suggestions when text is empty.
-              });
-            }
-          },
-        ),
-        SizedBox(height: 16),
-        if (citySuggestions.isNotEmpty)
-          Container(
-            height: 200, // Set a height for the suggestions list.
-            child: ListView.builder(
-              itemCount: citySuggestions.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(citySuggestions[index]),
-                  onTap: () {
-                    locationController.text =
-                        citySuggestions[index]; // Set selected city.
-                    setState(() {
-                      citySuggestions = []; // Hide suggestions after selection.
-                    });
-                  },
-                );
-              },
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: locationController,
+            decoration: InputDecoration(
+              labelText: label,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              prefixIcon: const Icon(Icons.location_city),
             ),
+            onChanged: (value) {
+              if (value.isNotEmpty) {
+                fetchCitySuggestions(
+                    value); // Fetch suggestions when text changes.
+              } else {
+                setState(() {
+                  citySuggestions = []; // Clear suggestions when text is empty.
+                });
+              }
+            },
           ),
-      ],
+          if (citySuggestions.isNotEmpty)
+            Container(
+              height: 200,
+              margin: const EdgeInsets.only(
+                  top: 8), // Replacing SizedBox with margin
+              child: ListView.builder(
+                itemCount: citySuggestions.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(citySuggestions[index]),
+                    onTap: () {
+                      locationController.text =
+                          citySuggestions[index]; // Set selected city.
+                      setState(() {
+                        citySuggestions =
+                            []; // Hide suggestions after selection.
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 
