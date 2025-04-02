@@ -7,7 +7,7 @@ This is a Flutter application that provides a Tinder-style matching platform for
 The app allows users to sign up or log in, create profiles based on their role (renter or landlord), and connect with suitable matches through a swipe-based interface. If a match occurs, users can start messaging each other through a built-in chat feature.
 
 ### 🔗 APK Download
-You can download the application via the following link: [Download APK](INSERT_APK_LINK_HERE)
+You can download the application via the following link: [Download APK]([https://github.com/Jakobolive/DCCapstone/releases/download/FirstReleaseTag/app-debug.apk]
 
 ---
 
