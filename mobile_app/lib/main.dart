@@ -6,7 +6,6 @@ import 'package:capstone_app/views/home_page.dart';
 import 'package:capstone_app/views/build_profile_page.dart';
 import 'package:capstone_app/views/edit_profile_page.dart';
 import 'package:capstone_app/views/login_page.dart';
-import 'package:capstone_app/views/matched_page.dart';
 import 'package:capstone_app/views/messaging_page.dart';
 import 'package:capstone_app/views/profile_page.dart';
 import 'package:capstone_app/views/sign_up_page.dart';
@@ -41,6 +40,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        fontFamily: 'RobotoFont',
       ),
       initialRoute: '/login', // Start at login page.
       routes: {
@@ -48,10 +48,6 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => SignUpPage(),
         '/home': (context) => MainScreen(),
         '/build-profile': (context) => BuildProfilePage(),
-        '/matched': (context) => MatchPopupPage(
-              matchName: 'John',
-              matchProfileImage: '.', // Placeholder.
-            ),
         '/edit-profile': (context) => EditProfilePage(),
       },
     );

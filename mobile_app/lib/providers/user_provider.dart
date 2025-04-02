@@ -210,13 +210,15 @@ class UserProvider extends ChangeNotifier {
         int profileId = (_userType == 'Renter')
             ? profile['listing_id'] as int
             : profile['preference_id'] as int;
+        // Add isPending flag.
+        profile['isPending'] = pendingMatchIds.contains(profileId);
         if (pendingMatchIds.contains(profileId)) {
           pendingProfiles.add(profile);
         } else if (!matchedIds.contains(profileId)) {
           unmatchedProfiles.add(profile);
         }
       }
-      // Prioritize pending profiles.
+      // Prepare profiles to be sorted.
       matchedProfiles = [...pendingProfiles, ...unmatchedProfiles];
     } else {
       matchedProfiles =
@@ -249,6 +251,10 @@ class UserProvider extends ChangeNotifier {
           compatibilityScore += 1;
         }
       }
+      // Boost pending matches.
+      if (profile['isPending']) {
+        compatibilityScore += 2; // Push pending profiles closer to the top.
+      }
       profile['compatibilityScore'] = compatibilityScore;
     }
 // Step 9: Sort profiles based on compatibilityScore (descending) and distance. (ascending)
@@ -273,7 +279,7 @@ class UserProvider extends ChangeNotifier {
     _profileId =
         profile['listing_id'] as int? ?? profile['preference_id'] as int?;
     _currentProfileIndex = 0;
-    fetchListingsOrPreferences(); // Fetch listings or preferences after selecting a profile.
+    //   fetchListingsOrPreferences(); // Fetch listings or preferences after selecting a profile.
     notifyListeners();
   }
 

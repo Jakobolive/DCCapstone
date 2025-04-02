@@ -70,7 +70,7 @@ class SignUpPage extends StatelessWidget {
           .insert({
             'first_name': firstNameController.text.trim(),
             'last_name': lastNameController.text.trim(),
-            'email_address': emailController.text.trim(),
+            'email_address': emailController.text..toLowerCase().trim(),
             'phone_number': phoneController.text.trim().isNotEmpty
                 ? int.tryParse(phoneController.text.trim())
                 : null,

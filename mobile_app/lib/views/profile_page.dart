@@ -12,67 +12,90 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Profile Page"),
-        centerTitle: true,
         backgroundColor: Colors.teal,
-        actions: [
-          if ((userProvider.renterProfiles?.isNotEmpty ?? false) ||
-              (userProvider.landlordProfiles?.isNotEmpty ?? false))
-            Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: DropdownButton<Map<String, dynamic>>(
-                  value: (userProvider.selectedProfile != null &&
-                          (userProvider.renterProfiles?.contains(
-                                      userProvider.selectedProfile!) ==
-                                  true ||
-                              userProvider.landlordProfiles?.contains(
-                                      userProvider.selectedProfile!) ==
-                                  true))
-                      ? userProvider.selectedProfile
-                      : null, // Ensures the value exists in the list.
-                  hint: const Text("Select Profile"),
-                  dropdownColor: Colors.white,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                  onChanged: (Map<String, dynamic>? newValue) {
-                    if (newValue != null) {
-                      final profileType = newValue['userType'];
-                      userProvider.setSelectedProfile(newValue,
-                          profileType == 'Renter' ? "Renter" : "Landlord");
-                      userProvider.fetchProfiles();
-                    }
-                  },
-                  items: [
-                    if (userProvider.renterProfiles != null)
-                      ...userProvider.renterProfiles!.map((profile) {
-                        return DropdownMenuItem<Map<String, dynamic>>(
-                          value: profile,
-                          child: Text(
-                              profile['preferred_name'] ?? "Renter Profile"),
-                        );
-                      }),
-                    if (userProvider.landlordProfiles != null)
-                      ...userProvider.landlordProfiles!.map((profile) {
-                        return DropdownMenuItem<Map<String, dynamic>>(
-                          value: profile,
-                          child: Text(
-                              profile['street_address'] ?? "Landlord Profile"),
-                        );
-                      }),
-                  ],
-                )),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              await userProvider.fetchProfiles();
-            },
+        title: Padding(
+          padding: const EdgeInsets.only(top: 10.0), // Add padding to the top.
+          child: Column(
+            mainAxisAlignment:
+                MainAxisAlignment.start, // Align title to the top.
+            children: [
+              const Text(
+                "Profile",
+                style: TextStyle(
+                    fontSize: 24), // Adjust title font size if needed.
+              ),
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.center, // Center the actions. (buttons)
+                children: [
+                  if ((userProvider.renterProfiles?.isNotEmpty ?? false) ||
+                      (userProvider.landlordProfiles?.isNotEmpty ?? false))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: DropdownButton<Map<String, dynamic>>(
+                        value: (userProvider.selectedProfile != null &&
+                                (userProvider.renterProfiles?.contains(
+                                            userProvider.selectedProfile!) ==
+                                        true ||
+                                    userProvider.landlordProfiles?.contains(
+                                            userProvider.selectedProfile!) ==
+                                        true))
+                            ? userProvider.selectedProfile
+                            : null, // Ensures the value exists in the list.
+                        hint: const Text("Select Profile"),
+                        dropdownColor: Colors.white,
+                        icon: const Icon(Icons.arrow_drop_down,
+                            color: Colors.white),
+                        onChanged: (Map<String, dynamic>? newValue) {
+                          if (newValue != null) {
+                            final profileType = newValue['userType'];
+                            userProvider.setSelectedProfile(
+                                newValue,
+                                profileType == 'Renter'
+                                    ? "Renter"
+                                    : "Landlord");
+                            userProvider.fetchProfiles();
+                          }
+                        },
+                        items: [
+                          if (userProvider.renterProfiles != null)
+                            ...userProvider.renterProfiles!.map((profile) {
+                              return DropdownMenuItem<Map<String, dynamic>>(
+                                value: profile,
+                                child: Text(profile['preferred_name'] ??
+                                    "Renter Profile"),
+                              );
+                            }),
+                          if (userProvider.landlordProfiles != null)
+                            ...userProvider.landlordProfiles!.map((profile) {
+                              return DropdownMenuItem<Map<String, dynamic>>(
+                                value: profile,
+                                child: Text(profile['street_address'] ??
+                                    "Landlord Profile"),
+                              );
+                            }),
+                        ],
+                      ),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () async {
+                      await userProvider.fetchProfiles();
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_add),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/build-profile');
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: () {
-              Navigator.pushNamed(context, '/build-profile');
-            },
-          ),
-        ],
+        ),
+        centerTitle: true, // Center the title horizontally.
+        toolbarHeight: 120, // Adjust the AppBar height to ensure enough space.
       ),
       body: selectedProfile == null
           ? const Center(
