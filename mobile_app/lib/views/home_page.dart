@@ -299,7 +299,7 @@ class _SwipePageState extends State<SwipePage> {
                       itemWidth: MediaQuery.of(context).size.width * 0.85,
                       itemHeight: MediaQuery.of(context).size.height * 0.6,
                       layout: SwiperLayout.DEFAULT,
-                      onIndexChanged: (index) {
+                      onIndexChanged: (index) async {
                         setState(() {
                           if (index > previousIndex) {
                             // Swiped Right (Like)
@@ -312,18 +312,26 @@ class _SwipePageState extends State<SwipePage> {
                                 .dislikeProfile(profilesToShow[previousIndex]);
                             print("Disliked profile at index $previousIndex");
                           }
-                          //  Update previousIndex to currentIndex and force forward progression.
+                          //  Update previousIndex.
                           previousIndex = index;
-                          currentIndex++;
+                          //currentIndex++;
                           // Ensure that the swiper proceeds to the next profile in the list.
+                          // if (currentIndex >= profilesToShow.length) {
+                          //   // If we've reached the end of the profiles, reset to the first profile or handle as necessary.
+                          //   currentIndex =
+                          //       0;
+                          // }
+                        });
+                        // Add a delay before updating currentIndex.
+                        await Future.delayed(Duration(
+                            milliseconds: 300)); // Adjust delay as needed.
+                        setState(() {
+                          currentIndex++;
                           if (currentIndex >= profilesToShow.length) {
-                            // If we've reached the end of the profiles, reset to the first profile or handle as necessary.
                             currentIndex =
-                                0; // Or you could hide the swiper and show a message to the user.
+                                0; // Reset to the first profile when reaching the end.
                           }
                         });
-                        // Manually move the swiper to the next card
-                        _swiperController.next();
                       },
                     ),
                     // Floating Action Buttons.
@@ -332,7 +340,7 @@ class _SwipePageState extends State<SwipePage> {
                       bottom: 250,
                       child: FloatingActionButton(
                         heroTag: "like",
-                        onPressed: () {
+                        onPressed: () async {
                           if (userProvider.selectedProfile == null) {
                             print(
                                 "🚨 Error: selectedProfile is NULL before calling likeProfile()");
@@ -340,6 +348,8 @@ class _SwipePageState extends State<SwipePage> {
                             print(
                                 "✅ selectedProfile is valid: ${userProvider.selectedProfile}");
                           }
+                          // Add delay before calling likeProfile
+                          await Future.delayed(Duration(milliseconds: 300));
                           userProvider.likeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
@@ -355,7 +365,7 @@ class _SwipePageState extends State<SwipePage> {
                       bottom: 250,
                       child: FloatingActionButton(
                         heroTag: "dislike",
-                        onPressed: () {
+                        onPressed: () async {
                           if (userProvider.selectedProfile == null) {
                             print(
                                 "🚨 Error: selectedProfile is NULL before calling likeProfile()");
@@ -363,6 +373,8 @@ class _SwipePageState extends State<SwipePage> {
                             print(
                                 "✅ selectedProfile is valid: ${userProvider.selectedProfile}");
                           }
+                          // Add delay before calling likeProfile
+                          await Future.delayed(Duration(milliseconds: 300));
                           userProvider.dislikeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
