@@ -317,7 +317,7 @@ class _SwipePageState extends State<SwipePage> {
                         });
                         // Add a delay before updating currentIndex.
                         await Future.delayed(Duration(
-                            milliseconds: 150)); // Adjust delay as needed.
+                            milliseconds: 500)); // Adjust delay as needed.
                         setState(() {
                           currentIndex++;
                           if (currentIndex >= profilesToShow.length) {
@@ -342,7 +342,7 @@ class _SwipePageState extends State<SwipePage> {
                                 "✅ selectedProfile is valid: ${userProvider.selectedProfile}");
                           }
                           // Add delay before calling likeProfile
-                          await Future.delayed(Duration(milliseconds: 150));
+                          await Future.delayed(Duration(milliseconds: 250));
                           userProvider.likeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
@@ -367,7 +367,7 @@ class _SwipePageState extends State<SwipePage> {
                                 "✅ selectedProfile is valid: ${userProvider.selectedProfile}");
                           }
                           // Add delay before calling likeProfile
-                          await Future.delayed(Duration(milliseconds: 150));
+                          await Future.delayed(Duration(milliseconds: 250));
                           userProvider.dislikeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
