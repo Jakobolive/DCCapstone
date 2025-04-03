@@ -32,6 +32,8 @@ class SwipePage extends StatefulWidget {
 class _SwipePageState extends State<SwipePage> {
   int currentIndex = 0; // Keep track of the current index.
   int previousIndex = 0; // Keep track of the previous index.
+  // Create a swipe controller.
+  SwiperController _swiperController = SwiperController();
   @override
   void initState() {
     super.initState();
@@ -139,12 +141,37 @@ class _SwipePageState extends State<SwipePage> {
           print('isRenter: $isRenter');
           // Determine which data to show based on the user type.
           final profilesToShow = userProvider.profiles;
+          // If there are no profiles to show, display a message depending on the user type.
+          if (profilesToShow == null || profilesToShow.isEmpty) {
+            return Center(
+              child: Text(
+                isRenter
+                    ? 'No Listings Found, Come Back Later'
+                    : 'No Renters Found, Come Back Later',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            );
+          }
+          // If the currentIndex exceeds available profiles, show a message depending on the user type.
+          if (currentIndex >= profilesToShow.length) {
+            return Center(
+              child: Text(
+                isRenter
+                    ? 'No More Listings Found, Come Back Later'
+                    : 'No More Renters Found, Come Back Later',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            );
+          }
           return profilesToShow?.isEmpty ?? true
               ? const Center(child: CircularProgressIndicator())
               : Stack(
                   children: [
                     Swiper(
                       key: ValueKey(profilesToShow),
+                      controller: _swiperController,
                       itemBuilder: (BuildContext context, int index) {
                         // Determine whether to show profile or listing data.
                         final data = profilesToShow![
@@ -295,6 +322,8 @@ class _SwipePageState extends State<SwipePage> {
                                 0; // Or you could hide the swiper and show a message to the user.
                           }
                         });
+                        // Manually move the swiper to the next card
+                        _swiperController.next();
                       },
                     ),
                     // Floating Action Buttons.
