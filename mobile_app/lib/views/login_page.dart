@@ -81,7 +81,9 @@ class LoginPage extends StatelessWidget {
                 const Center(
                   child: Text(
                     "Login",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 28,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
