@@ -145,10 +145,11 @@ class _SwipePageState extends State<SwipePage> {
               : Stack(
                   children: [
                     Swiper(
+                      key: ValueKey(profilesToShow),
                       itemBuilder: (BuildContext context, int index) {
                         // Determine whether to show profile or listing data.
                         final data = profilesToShow![
-                            currentIndex]; // Renters see Landlord profiles.
+                            index]; // Renters see Landlord profiles.
                         return Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
