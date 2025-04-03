@@ -314,17 +314,10 @@ class _SwipePageState extends State<SwipePage> {
                           }
                           //  Update previousIndex.
                           previousIndex = index;
-                          //currentIndex++;
-                          // Ensure that the swiper proceeds to the next profile in the list.
-                          // if (currentIndex >= profilesToShow.length) {
-                          //   // If we've reached the end of the profiles, reset to the first profile or handle as necessary.
-                          //   currentIndex =
-                          //       0;
-                          // }
                         });
                         // Add a delay before updating currentIndex.
                         await Future.delayed(Duration(
-                            milliseconds: 300)); // Adjust delay as needed.
+                            milliseconds: 150)); // Adjust delay as needed.
                         setState(() {
                           currentIndex++;
                           if (currentIndex >= profilesToShow.length) {
@@ -349,7 +342,7 @@ class _SwipePageState extends State<SwipePage> {
                                 "✅ selectedProfile is valid: ${userProvider.selectedProfile}");
                           }
                           // Add delay before calling likeProfile
-                          await Future.delayed(Duration(milliseconds: 300));
+                          await Future.delayed(Duration(milliseconds: 150));
                           userProvider.likeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
@@ -374,7 +367,7 @@ class _SwipePageState extends State<SwipePage> {
                                 "✅ selectedProfile is valid: ${userProvider.selectedProfile}");
                           }
                           // Add delay before calling likeProfile
-                          await Future.delayed(Duration(milliseconds: 300));
+                          await Future.delayed(Duration(milliseconds: 150));
                           userProvider.dislikeProfile(
                               userProvider.profiles![currentIndex]);
                           setState(() {
