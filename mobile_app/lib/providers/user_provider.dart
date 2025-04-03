@@ -335,14 +335,29 @@ class UserProvider extends ChangeNotifier {
     int? dislikedUserId = (userType == 'Renter')
         ? dislikedProfile['listing_id'] as int?
         : dislikedProfile['preference_id'] as int?;
-    // Insert declined match.
+    // Insert or update declined match.
     try {
-      await supabase.from('match_table').insert({
-        'preference_id': currentUserId,
-        'listing_id': dislikedUserId,
-        'match_notes': '',
-        'match_status': 'declined',
-      });
+      final response = await supabase
+          .from('match_table')
+          .select()
+          .or('and(preference_id.eq.$currentUserId,listing_id.eq.$dislikedUserId),and(preference_id.eq.$dislikedUserId,listing_id.eq.$currentUserId)')
+          .maybeSingle();
+      if (response != null) {
+        // Match exists, update to "Declined."
+        await supabase
+            .from('match_table')
+            .update({'match_status': 'declined'}).match({
+          'preference_id': response['preference_id'],
+          'listing_id': response['listing_id'],
+        });
+      } else {
+        await supabase.from('match_table').insert({
+          'preference_id': currentUserId,
+          'listing_id': dislikedUserId,
+          'match_notes': '',
+          'match_status': 'declined',
+        });
+      }
       notifyListeners();
     } catch (error) {
       print('Error disliking profile: $error');

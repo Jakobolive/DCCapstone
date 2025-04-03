@@ -145,151 +145,176 @@ class _SwipePageState extends State<SwipePage> {
               : Stack(
                   children: [
                     Swiper(
-                      key: ValueKey(profilesToShow),
-                      itemBuilder: (BuildContext context, int index) {
-                        // Determine whether to show profile or listing data.
-                        final data = profilesToShow![
-                            index]; // Renters see Landlord profiles.
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(20)),
-                                  child: Image.network(
-                                    data['photo_url'] ?? '',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Center(
-                                          child: Icon(Icons.error));
-                                    },
+                        key: ValueKey(profilesToShow),
+                        itemBuilder: (BuildContext context, int index) {
+                          // Determine whether to show profile or listing data.
+                          final data = profilesToShow![
+                              index]; // Renters see Landlord profiles.
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(20)),
+                                    child: Image.network(
+                                      data['photo_url'] ?? '',
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return const Center(
+                                            child: Icon(Icons.error));
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (isRenter) ...[
-                                      // Assuming it is a renter profile, display listings.
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment
-                                            .center, // Centers all child widgets horizontally.
-                                        children: [
-                                          Text(
-                                            data['street_address'] ??
-                                                "No Address Available",
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          Text(
-                                            '(Landlord Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
-                                            '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.green),
-                                          ),
-                                          Text(
-                                            data['location'] ??
-                                                "No Location Available",
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          Text(
-                                            data['asking_price']?.toString() ??
-                                                "No price",
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.grey),
-                                          ),
-                                          Text(
-                                            data['listing_bio'] ??
-                                                "No Bio Available",
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                        ],
-                                      )
-                                    ]
-                                    // For Renters, show preference-specific information.
-                                    else if (!isRenter) ...[
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment
-                                            .center, // Centers all child widgets horizontally.
-                                        children: [
-                                          Text(
-                                            data['preferred_name'] ??
-                                                "No Name Available",
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          Text(
-                                            '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
-                                            '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.green),
-                                          ),
-                                          Text(
-                                            data['location'] ??
-                                                "No Location Available",
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          Text(
-                                            data['max_budget']?.toString() ??
-                                                "No Budget Available",
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                          Text(
-                                            data['profile_bio'] ??
-                                                "No Bio Available",
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                        ],
-                                      )
-                                    ]
-                                  ],
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (isRenter) ...[
+                                        // Assuming it is a renter profile, display listings.
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment
+                                              .center, // Centers all child widgets horizontally.
+                                          children: [
+                                            Text(
+                                              data['street_address'] ??
+                                                  "No Address Available",
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              '(Landlord Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
+                                              '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green),
+                                            ),
+                                            Text(
+                                              data['location'] ??
+                                                  "No Location Available",
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              data['asking_price']
+                                                      ?.toString() ??
+                                                  "No price",
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.grey),
+                                            ),
+                                            Text(
+                                              data['listing_bio'] ??
+                                                  "No Bio Available",
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                          ],
+                                        )
+                                      ]
+                                      // For Renters, show preference-specific information.
+                                      else if (!isRenter) ...[
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment
+                                              .center, // Centers all child widgets horizontally.
+                                          children: [
+                                            Text(
+                                              data['preferred_name'] ??
+                                                  "No Name Available",
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              '(Renter Score: ${data['compatibilityScore']?.toStringAsFixed(2) ?? 'N/A'})' // Formate compatibility score.
+                                              '${data['isPending'] == true ? " • Liked Your Profile!" : ""}',
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green),
+                                            ),
+                                            Text(
+                                              data['location'] ??
+                                                  "No Location Available",
+                                              style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              data['max_budget']?.toString() ??
+                                                  "No Budget Available",
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                            Text(
+                                              data['profile_bio'] ??
+                                                  "No Bio Available",
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                          ],
+                                        )
+                                      ]
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      itemCount: profilesToShow.length ?? 0,
-                      itemWidth: MediaQuery.of(context).size.width * 0.85,
-                      itemHeight: MediaQuery.of(context).size.height * 0.6,
-                      layout: SwiperLayout.DEFAULT,
-                      onIndexChanged: (index) {
-                        setState(() {
-                          if (index > previousIndex) {
-                            // Swiped Right (Like)
-                            userProvider
-                                .likeProfile(profilesToShow[previousIndex]);
-                            print("Liked profile at index $previousIndex");
-                          } else if (index < previousIndex) {
-                            // Swiped Left (Dislike)
-                            userProvider
-                                .dislikeProfile(profilesToShow[previousIndex]);
-                            print("Disliked profile at index $previousIndex");
+                              ],
+                            ),
+                          );
+                        },
+                        itemCount: profilesToShow.length ?? 0,
+                        itemWidth: MediaQuery.of(context).size.width * 0.85,
+                        itemHeight: MediaQuery.of(context).size.height * 0.6,
+                        layout: SwiperLayout.DEFAULT,
+                        onIndexChanged: (index) {
+                          if (index < profilesToShow.length) {
+                            setState(() {
+                              final profile = profilesToShow[index];
+
+                              if (index > previousIndex) {
+                                // Swiped Right. (Like)
+                                userProvider.likeProfile(profile);
+                                print("Liked profile at index $index");
+                              } else if (index < previousIndex) {
+                                // Swiped Left. (Dislike)
+                                userProvider.dislikeProfile(profile);
+                                print("Disliked profile at index $index");
+                              }
+                              // Remove the current profile from the list to prevent going back.
+                              profilesToShow.removeAt(index);
+                              // Reset index to 0 if the list becomes empty.
+                              previousIndex =
+                                  profilesToShow.isEmpty ? 0 : index;
+                            });
                           }
-                          previousIndex = index;
-                        });
-                      },
-                    ),
+                        }
+                        // onIndexChanged: (index) {
+                        //   setState(() {
+                        //     if (index > previousIndex) {
+                        //       // Swiped Right (Like)
+                        //       userProvider
+                        //           .likeProfile(profilesToShow[previousIndex]);
+                        //       print("Liked profile at index $previousIndex");
+                        //     } else if (index < previousIndex) {
+                        //       // Swiped Left (Dislike)
+                        //       userProvider
+                        //           .dislikeProfile(profilesToShow[previousIndex]);
+                        //       print("Disliked profile at index $previousIndex");
+                        //     }
+                        //     previousIndex = index;
+                        //   });
+                        // },
+                        ),
                     // Floating Action Buttons.
                     Positioned(
                       right: 20,
